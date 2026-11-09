@@ -40,6 +40,18 @@ public static class Igi2RigidTrace
             return;
         }
 
+        // A lift-shaft collision box is open to a human: retail does not register it for the human
+        // trace (mesh 1), so the player boards a lift with its door open and passes a shaft doorway
+        // instead of being walled off by it. Mesh 0 -- bullets, sight, physics -- still meets it, and
+        // a level with no lift machinery never sets the flag, so its colbox* stays solid. This is the
+        // rule PR #55 wrote into ObjectCollisionIndexBuilder, which the I.G.I. 2 player never reads:
+        // its wall sweep traces this world, not that index, so the exclusion has to live here to reach
+        // the player at all.
+        if (trace.Mesh == 1 && model.IsLiftShaftVolume)
+        {
+            return;
+        }
+
         if (trace.Includes is { } includes && !includes(model.Owner))
         {
             return;

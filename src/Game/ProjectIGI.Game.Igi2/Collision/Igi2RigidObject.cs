@@ -124,6 +124,16 @@ public sealed class Igi2RigidObject : IWorldCollider, ProjectIGI.Game.World.IAtt
     /// <summary>Gets a value indicating whether the model draws as a building.</summary>
     public bool IsBuildingMesh { get; }
 
+    /// <summary>
+    /// Gets whether this solid is an invisible elevator-shaft collision volume (model name <c>colbox*</c>,
+    /// task class <c>EditRigidObj</c>) on a level with lift machinery. Retail does not register those
+    /// boxes for the human trace, so the human (mesh 1) trace passes through them, while every mesh-0
+    /// trace (bullets, sight, physics) still meets them. Set where the world is built, only when the
+    /// level places a lift; levels without one author <c>colbox*</c> as ordinary static collision and
+    /// keep it solid. See <see cref="Igi2RigidTrace"/>.
+    /// </summary>
+    public bool IsLiftShaftVolume { get; init; }
+
     /// <summary>Gets or sets a value indicating whether the model has baked lightmaps (<c>+0x134</c> set and non-empty).</summary>
     public bool IsLightmapped { get; set; }
 
