@@ -399,6 +399,20 @@ public static class AndroidHost
         return _gameHost is { } host && host.IsCreditsScreen ? 1 : 0;
     }
 
+    /// <summary>Opens the main menu's load view — the Android side calls this from the LOAD GAME button.</summary>
+    /// <remarks>
+    /// It only raises the flag: the shell stack belongs to the game thread, which takes the request up on the next frame, and only
+    /// while the main menu is up.
+    /// </remarks>
+    [UnmanagedCallersOnly(EntryPoint = "OpenLoadGame")]
+    public static void OpenLoadGame()
+    {
+        if (_gameHost is { } host)
+        {
+            host.LoadGameRequested = true;
+        }
+    }
+
     /// <summary>Sets the soft-keyboard request flag (the Android side clears it when Back dismisses the keyboard).</summary>
     [UnmanagedCallersOnly(EntryPoint = "SetKeyboardRequested")]
     public static void SetKeyboardRequested(int value)
