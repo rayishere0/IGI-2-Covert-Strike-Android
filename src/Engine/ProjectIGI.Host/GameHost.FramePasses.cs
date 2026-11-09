@@ -104,7 +104,7 @@ public sealed partial class GameHost
         _window.PumpEvents();
         ApplyTouchControls(state);
         UpdateCheatsOverlay(state);
-        UpdateBenchmarkInput();
+        UpdateBenchmarkInput(state);
 
         // Whatever the detail-map workers finished since the last pass, uploaded a few at a time.
         // The setting is read here rather than captured at construction so that turning
@@ -186,14 +186,23 @@ public sealed partial class GameHost
         // The cinematic shell reads the frame's input after the console and, like it, marks the frame
         // captured so the free camera and the game beneath see an idle keyboard and pad. When the console
         // is open it owns the frame and the shell only advances its animation.
+        //
+        // Not while a benchmark is running: the menu is hidden for the run, and a shell that still
+        // heard taps would fire invisible buttons under the drone view. Everything else in this
+        // block still runs -- the press queue is drained, the held-frame handover still fires --
+        // so the run's own backdrop swap is unaffected; only the shell's reading of input stops.
         if (_menuFlow.MenuMode && state.Shell is not null)
         {
             int shellNow = _loop.TimeSource.Milliseconds;
             float shellElapsed = Math.Clamp((shellNow - state.LastShellMilliseconds) / 1000f, 0f, 0.1f);
             state.LastShellMilliseconds = shellNow;
 
-            var shellFrame = new LayoutContext(_window.Width, _window.Height);
-            state.Shell.Update(shellFrame, _window.Input, shellElapsed);
+            if (!BenchmarkRunning)
+            {
+                var shellFrame = new LayoutContext(_window.Width, _window.Height);
+                state.Shell.Update(shellFrame, _window.Input, shellElapsed);
+            }
+
             DrainPressQueue(state, executeBinds: false);
             // Whether a text field is focused, for the Android soft keyboard: the Java
             // side polls this (via IsTextFieldFocused) and shows/hides the IME.
@@ -620,7 +629,12 @@ public sealed partial class GameHost
                 _loadSequence.ShellOpacity);
 
 
-            if (shellOpacity > 0.001f)
+            // The benchmark hides the menu while it runs -- the drone view is the picture, and
+            // the benchmark's own heads-up display is the only interface over it. The hold and
+            // the dissolve above still run, so a backdrop swap (the run's own move to the
+            // Weather Station, or back) still cross-dissolves; only the interface is held back.
+            // The shell's input is held back the same way, in UpdateShell below.
+            if (shellOpacity > 0.001f && !BenchmarkRunning)
             {
                 // The frame so far — the level, the dissolve over it — blurred into the levels the
                 // shell's backdrop and every glass panel sample. The blur closes the 2D pass, so the

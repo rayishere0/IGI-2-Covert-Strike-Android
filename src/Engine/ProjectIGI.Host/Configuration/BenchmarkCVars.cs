@@ -18,4 +18,18 @@ public static class BenchmarkCVars
         false,
         CVarOptions.Archive,
         "Whether the first-run benchmark has finished or been skipped; set so it never runs unprompted again.");
+
+    /// <summary>Summary of the last benchmark run that reached its results screen.</summary>
+    /// <remarks>
+    /// Archived, so the proof survives to the next launch: the date, the tier picked and each measured
+    /// tier's 1% low FPS, for example "09 Nov 16:40 UTC - Medium - H24 M38 L-- FPS 1% low" (a tier that
+    /// was never measured, because a higher tier already held the bar, shows as --). Empty when no run
+    /// has finished. Skipped runs write nothing here: a skip is not a measurement. Shown on the cheats
+    /// menu's BENCHMARK row, so the last run is visible without opening a log.
+    /// </remarks>
+    public static readonly StringCVar LastRun = CVar.Text(
+        "r_benchmark_last",
+        "",
+        CVarOptions.Archive,
+        "Summary of the last benchmark run: date, chosen tier and per-tier 1% low FPS; empty when no run has finished.");
 }

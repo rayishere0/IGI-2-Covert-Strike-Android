@@ -25,6 +25,14 @@ public sealed partial class GameHost
             return;
         }
 
+        // While a benchmark is running the menu is hidden and the gear is not drawn; the modal
+        // cannot open under the drone view, and the keyboard toggle stays put too.
+        if (BenchmarkRunning)
+        {
+            _cheatsModalOpen = false;
+            return;
+        }
+
         float width = SafeWindowWidth;
         float height = SafeWindowHeight;
         float scale = Math.Clamp(height / 480f, 1f, 3f);
@@ -159,7 +167,7 @@ public sealed partial class GameHost
         }
 
         // Row 4: Benchmark -- an action, not a toggle: it closes the modal and starts the
-        // run over the menu level. Inert while a run is already going.
+        // run over the Weather Station. Inert while a run is already going.
         float r4Y = contentY + (rowHeight * 4f);
         if (clickX >= btnX && clickX <= btnX + btnW && clickY >= r4Y && clickY <= r4Y + btnH)
         {
@@ -187,6 +195,12 @@ public sealed partial class GameHost
     {
         bool isMainMenu = _session.Mission == null && !_menuFlow.PauseMenu && state.Shell?.Stack.Top is MainMenuScreen;
         if (!isMainMenu)
+        {
+            return;
+        }
+
+        // The gear and the keyboard icon stay off the drone view while a run is going.
+        if (BenchmarkRunning)
         {
             return;
         }
@@ -337,7 +351,13 @@ public sealed partial class GameHost
             DrawCheatRow(1, "INFINITE AMMUNITION", "Magazines stay filled, reserves never deplete while firing", PlayerCheatCVars.InfiniteAmmo.Value);
             DrawCheatRow(2, "ALL WEAPONS", "Adds all weapons into inventory for the mission", PlayerCheatCVars.AllWeapons.Value);
             DrawCheatRow(3, "UNLOCK ALL MISSIONS", $"All {_missions.InProgressionOrder().Count()} missions are selectable in Campaign", PlayerCheatCVars.UnlockAllLevels.Value);
-            DrawCheatRow(4, "BENCHMARK", "Measure High, Medium and Low; keep the best that holds 30 FPS", BenchmarkRunning, "RUNNING", "RUN");
+            // The last finished run, when there is one, is the proof it ran: date, tier picked
+            // and per-tier 1% low FPS, from r_benchmark_last. A run that was skipped writes
+            // nothing there, so the row keeps the last finished run's line.
+            string benchmarkBlurb = BenchmarkCVars.LastRun.Value.Length > 0
+                ? $"Last run: {BenchmarkCVars.LastRun.Value}"
+                : "Measure High, Medium and Low over the Weather Station; keep the best that holds 30 FPS";
+            DrawCheatRow(4, "BENCHMARK", benchmarkBlurb, BenchmarkRunning, "RUNNING", "RUN");
 
             // Close button
             float closeW = 220f * scale;

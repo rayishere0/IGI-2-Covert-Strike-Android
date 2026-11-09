@@ -37,8 +37,10 @@ public sealed partial class GameHost
         float tangentHalfFovY = MathF.Tan(view.VerticalFieldOfView * 0.5f);
         _world.Visibility?.BeginView(view.Eye, tangentHalfFovY * view.AspectRatio, tangentHalfFovY);
 
-        // The soldiers are drawn by the same answer, outside the world renderer.
-        _soldiers?.Visibility = _world.Visibility;
+        // The soldiers are drawn by the same answer, outside the world renderer. Over the menu
+        // that is the backdrop's soldiers while the benchmark's drone view is up -- the same
+        // bodies DrawCharacters draws then -- and the mission's otherwise.
+        (_soldiers ?? (BenchmarkRunning ? _menuBackdrop.Soldiers : null))?.Visibility = _world.Visibility;
 
         ICharacterPresenter? casterBodies = BeginCharacterFrame(view.TickBlend, view.SmoothPresentation);
         view.SceneTarget = DescribeSceneTarget(view.Resolution, view.WantsTemporal);
