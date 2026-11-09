@@ -43,9 +43,6 @@ public sealed class Igi2ConfigNatives : IMenuConfiguration, IMenuMissionStats
     private Func<int>? _getResolutionTier;
     private Action<int>? _setResolutionTier;
 
-    /// <summary>The mark a locked mission carries in the list.</summary>
-    private const string LockedSuffix = " (Locked)";
-
     /// <summary>Initializes a new instance of the <see cref="Igi2ConfigNatives"/> class.</summary>
     /// <param name="config">The player profiles the settings screens read and write.</param>
     /// <param name="missions">The title's missions, which the mission screens list, or <see langword="null"/> before they are scanned.</param>
@@ -189,6 +186,34 @@ public sealed class Igi2ConfigNatives : IMenuConfiguration, IMenuMissionStats
 
         name = Localise(mission.Name);
         description = Localise(mission.Description);
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public bool TryGetActiveMissionTable(out MissionStatsTable table)
+    {
+        table = default;
+
+        if (StatsActiveMissionId == 0 || _missions() is not { } catalogue
+            || !catalogue.TryGet(StatsActiveMissionId, out MissionDescriptor? mission))
+        {
+            return false;
+        }
+
+        // Only mission 1's Target column is known (retail screen 914): the rest stay blank until
+        // the GOPlayerMissionStats layout is reverse-engineered. Every Achieved cell is a default
+        // until per-mission stats are recorded.
+        bool first = mission.Id == FirstMissionId();
+        table = new MissionStatsTable(
+            TimeAchieved: "0:00:00",
+            TimeTarget: first ? "0:24:00" : string.Empty,
+            TimesSpottedAchieved: "0",
+            TimesSpottedTarget: first ? "0" : string.Empty,
+            HealthAchieved: "N/A",
+            HealthTarget: first ? "40%" : string.Empty,
+            AccuracyAchieved: "N/A",
+            AccuracyTarget: first ? "40%" : string.Empty,
+            RankAchieved: "Unranked");
         return true;
     }
 
@@ -471,11 +496,13 @@ public sealed class Igi2ConfigNatives : IMenuConfiguration, IMenuMissionStats
     /// Project I.G.I.'s <c>Config_FillMissionSelectionBox</c> (<c>0x405660</c>) walks the mission chain
     /// from the first id, adding each mission's name keyed by its id, and stops after the one the
     /// profile has reached — which is what keeps a fresh profile from starting mission 14. The whole
-    /// campaign is listed here instead, with the ones past the frontier marked locked and unpickable,
-    /// which says the same thing in the open: the missions are there, and the game decides which may
-    /// be played. A profile that has reached nothing (active mission zero) counts as standing on the
+    /// campaign is listed here instead, with the ones past the frontier unpickable, which says the
+    /// same thing in the open: the missions are there, and the game decides which may be played. A
+    /// profile that has reached nothing (active mission zero) counts as standing on the
     /// first mission — without that the frontier is no mission at all, and the whole campaign lists
-    /// unlocked, which is how every mission came to be playable from a fresh install.
+    /// unlocked, which is how every mission came to be playable from a fresh install. Retail shows
+    /// plain names for every row, so no suffix marks the locked ones: lock enforcement is the
+    /// item's <c>Enabled</c> flag, which the list's selection and tap paths check, not the label.
     /// </remarks>
     private IEnumerable<MenuListItem> GetMissions(int reached)
     {
@@ -489,7 +516,7 @@ public sealed class Igi2ConfigNatives : IMenuConfiguration, IMenuMissionStats
             string displayName = TryGetCorrectedText(mission.Id, out string correctedName, out _)
                 ? correctedName
                 : Localise(mission.Name);
-            yield return new MenuListItem(mission.Id, unlocked ? displayName : displayName + LockedSuffix, unlocked);
+            yield return new MenuListItem(mission.Id, displayName, unlocked);
             index++;
         }
     }
