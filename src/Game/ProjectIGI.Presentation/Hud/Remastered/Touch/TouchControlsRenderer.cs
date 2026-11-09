@@ -169,6 +169,7 @@ public static class TouchControlsRenderer
                 TouchElementId.Use => "ACTION",
                 TouchElementId.Pause => "PAUSE",
                 TouchElementId.Map => "MAP",
+                TouchElementId.Objectives => "OBJECTIVES",
                 TouchElementId.Binoculars => "BINOCS",
                 _ => "",
             };
@@ -437,6 +438,15 @@ public static class TouchControlsRenderer
                 painter.StrokePolygon(fold, stroke, ink);
                 Line(-0.3f, -0.82f, -0.3f, 0.62f);
                 Line(0.3f, -0.62f, 0.3f, 0.82f);
+                break;
+            case TouchButton.Objectives:
+                // A checklist: three bulleted lines, the mission's objectives.
+                Dot(-0.7f, -0.5f, 0.12f);
+                Line(-0.45f, -0.5f, 0.6f, -0.5f);
+                Dot(-0.7f, 0f, 0.12f);
+                Line(-0.45f, 0f, 0.6f, 0f);
+                Dot(-0.7f, 0.5f, 0.12f);
+                Line(-0.45f, 0.5f, 0.6f, 0.5f);
                 break;
             case TouchButton.Binoculars:
                 Ring(-0.46f, 0.2f, 0.38f);

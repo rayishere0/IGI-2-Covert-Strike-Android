@@ -83,6 +83,7 @@ public sealed partial class GameHost
         TouchButton.PrevWeapon => "PrevWeapon",
         TouchButton.Peek => "Peek",
         TouchButton.Map => "MapComputer",
+        TouchButton.Objectives => "Title_igi2_ComputerObjectives",
         TouchButton.Binoculars => "Binoculars",
         TouchButton.NightVision => "Binoculars",
         TouchButton.ZoomIn => "ZoomIn",
