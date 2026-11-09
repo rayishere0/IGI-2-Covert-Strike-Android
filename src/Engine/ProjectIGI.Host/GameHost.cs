@@ -88,7 +88,17 @@ public sealed partial class GameHost : IDisposable
     /// Gets whether the retail main menu is up over no mission (not the pause menu).
     /// The Android side polls this to show the socials button on the main menu only.
     /// </summary>
-    public bool IsOnMainMenu => _menuFlow.MenuMode && !_menuFlow.PauseMenu && _session.Mission == null;
+    /// <remarks>
+    /// The retail leg is the one Android actually stands on: the retail menus never switch <c>MenuMode</c> on — see
+    /// <see cref="IsRetailMainMenuUp"/> — so without it the button never appeared, even though the menu was up.
+    /// The load view itself is excluded: while it is open over the menu the buttons would sit on top of its list.
+    /// </remarks>
+    public bool IsOnMainMenu =>
+        (_menuFlow.MenuMode && !_menuFlow.PauseMenu && _session.Mission == null)
+        || (IsRetailMainMenuUp && !_loadGameOverlayOpen);
+
+    /// <summary>The id of I.G.I. 2's retail main menu screen, as mainmenu.qvm numbers it.</summary>
+    private const int Igi2MainMenuScreenId = 900;
 
     /// <summary>The id of I.G.I. 2's retail credits screen, as mainmenu.qvm numbers it.</summary>
     private const int Igi2CreditsScreenId = 916;
@@ -98,6 +108,32 @@ public sealed partial class GameHost : IDisposable
     /// The Android side polls this to show the GitHub link button on the credits screen only.
     /// </summary>
     public bool IsCreditsScreen => IsOnMainMenu && _retailMenus is { } menus && menus.ActiveMenuScreen == Igi2CreditsScreenId;
+
+    /// <summary>Whether the load view is open over the retail menu, so the main-menu buttons stay hidden under it.</summary>
+    /// <remarks>Set every pass by <see cref="UpdateShell"/>; read by <see cref="IsOnMainMenu"/> on the Android poller's thread.</remarks>
+    private bool _loadGameOverlayOpen;
+
+    /// <summary>
+    /// Gets whether the title's retail main menu is up: its menus are running on their main screen, over no mission, outside
+    /// the pause menu, any load and any benchmark run.
+    /// </summary>
+    /// <remarks>
+    /// The shell's <c>MenuMode</c> never covers this. On the retail path (<c>-vanillamenu</c>, which Android always takes)
+    /// startup only asks the flow for the main menu, and <c>LoadMainMenu</c> only creates the menus: the one branch that
+    /// switches <c>MenuMode</c> on runs solely when a title draws no retail menus. Every other assignment is the pause menu,
+    /// a mission result page, a title switch or the cinematic branch — none of which is the retail main menu standing open.
+    /// So <see cref="IsOnMainMenu"/> read <c>MenuMode</c> alone, and every Android overlay gated on it stayed hidden while
+    /// the retail menu was up. The screen id is I.G.I. 2's (900); a title whose main screen numbers differently simply
+    /// never takes this leg, exactly as today.
+    /// </remarks>
+    private bool IsRetailMainMenuUp =>
+        _retailMenus is { } menus
+        && menus.ActiveMenuScreen == Igi2MainMenuScreenId
+        && _session.Mission is null
+        && !_session.FailedMenu
+        && !_menuFlow.PauseMenu
+        && !_loadSequence.IsActive
+        && !BenchmarkRunning;
 
     // --- Environment, supplied by the composition root ---
     private readonly IPlatformHost _platform;
