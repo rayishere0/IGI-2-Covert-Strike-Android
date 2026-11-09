@@ -212,6 +212,12 @@ public sealed class SettingsScreen : ShellScreen
         // (TitleSaveSlot.Description); the date a save was written is not on that contract -- the
         // concrete Igi2MissionSaves.SlotLabel has it, but the Frontend does not reference the Igi2
         // assembly -- so it is not shown here.
+        // The category is closed, not just opened: a hairline divider (Rule, the same
+        // Theme.Border the GroupHeader rules draw with) sits under the last save row, and
+        // the controls below carry their own CONTROLS header -- the save block used to run
+        // straight into the unheaded controls, which is why it read as the first rows of
+        // the settings instead of a category of its own. Divider and header both sit
+        // inside this gate, so settings opened from the main menu show neither.
         if (Context.InGame && Context.Host.MissionSaves is { } saves)
         {
             configStack.AddChild(new GroupHeader(theme, "Save game") { Margin = new Thickness(0f, 18f, 0f, 4f) });
@@ -289,6 +295,23 @@ public sealed class SettingsScreen : ShellScreen
             }
 
             RefreshSaveSection();
+
+            // The category's closing edge: a hairline in the same Theme.Border the GroupHeader
+            // rules draw with, with clear space on both sides, so the save block ends visibly
+            // instead of running straight into the controls below.
+            configStack.AddChild(new Rule
+            {
+                Orientation = Orientation.Horizontal,
+                Length = 1150f,
+                Color = theme.Border,
+                Margin = new Thickness(0f, 12f, 0f, 12f),
+            });
+
+            // The next category's own header: the controls below were unheaded, so the save
+            // rows read as the first rows of one long list. Headed like Graphics and Graphics
+            // quality below, the save block now sits between two headers -- its own SAVE GAME
+            // above and CONTROLS below -- which is what makes it a category of its own.
+            configStack.AddChild(new GroupHeader(theme, "Controls") { Margin = new Thickness(0f, 18f, 0f, 4f) });
         }
 
         // ── Option 1: On-Screen Touch Controls Customizer ─────────────────
