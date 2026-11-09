@@ -373,7 +373,7 @@ public sealed class MenuRenderer : IDisposable
                     break;
                 case TypeWriterBoxTask typer:
                     DrawWindowBox(batch, typer, screenWidth, screenHeight);
-                    DrawInBox(batch, typer, string.Empty, [typer.VisibleText], 0, screenWidth, screenHeight);
+                    DrawInBox(batch, typer, string.Empty, WrapVisibleText(typer), 0, screenWidth, screenHeight);
                     break;
                 case PictureBoxTask picture:
                     DrawPictureBox(batch, picture, screenWidth, screenHeight);
@@ -889,6 +889,92 @@ public sealed class MenuRenderer : IDisposable
 
             Draw(batch, font, box.Items[index].Label, box.LayoutX + 2, y, screenWidth, screenHeight);
         }
+    }
+
+    /// <summary>Breaks the typewriter's revealed text into lines that fit its box.</summary>
+    /// <remarks>
+    /// The box draws one string as one line, and nothing wraps it — a long line runs past the
+    /// frame. The retail credits are one long string with embedded line breaks, so the revealed
+    /// prefix is split on those first, then each paragraph is word-wrapped to the box's inner
+    /// width, measured with the same font the box draws in, so the wrap holds at any scale.
+    /// A single word wider than the box is hard-broken mid-word rather than left overflowing.
+    /// </remarks>
+    private IReadOnlyList<string> WrapVisibleText(TypeWriterBoxTask typer)
+    {
+        BitmapTextRenderer? font = TryGetFont(DefaultBoxFont);
+        string text = typer.VisibleText;
+        if (font is null || text.Length == 0)
+        {
+            return [text];
+        }
+
+        float maxWidth = Math.Max(1, typer.LayoutWidth - 4);
+        List<string> lines = [];
+        foreach (string paragraph in text.Split('\n'))
+        {
+            if (paragraph.Length == 0)
+            {
+                lines.Add(string.Empty);
+                continue;
+            }
+
+            lines.AddRange(WrapParagraph(font, paragraph, maxWidth));
+        }
+
+        return lines;
+    }
+
+    /// <summary>Word-wraps one paragraph to a width, hard-breaking an over-wide word.</summary>
+    private static IReadOnlyList<string> WrapParagraph(BitmapTextRenderer font, string paragraph, float maxWidth)
+    {
+        List<string> lines = [];
+        string rest = paragraph;
+        while (rest.Length > 0)
+        {
+            if (font.Measure(rest).Width <= maxWidth)
+            {
+                lines.Add(rest);
+                break;
+            }
+
+            // Longest fitting prefix, by binary search on the measured width.
+            int take = 0;
+            int low = 1;
+            int high = rest.Length;
+            while (low <= high)
+            {
+                int mid = (low + high) / 2;
+                if (font.Measure(rest[..mid]).Width <= maxWidth)
+                {
+                    take = mid;
+                    low = mid + 1;
+                }
+                else
+                {
+                    high = mid - 1;
+                }
+            }
+
+            if (take <= 0)
+            {
+                // A single glyph wider than the box: still emit it rather than looping forever.
+                take = 1;
+            }
+
+            int space = rest.LastIndexOf(' ', take - 1);
+            if (space > 0)
+            {
+                lines.Add(rest[..space]);
+                rest = rest[(space + 1)..].TrimStart();
+            }
+            else
+            {
+                lines.Add(rest[..take]);
+                rest = rest[take..];
+            }
+        }
+
+        return lines;
     }
 
     /// <summary>Draws as many lines as fit inside a control, starting at a scroll offset.</summary>

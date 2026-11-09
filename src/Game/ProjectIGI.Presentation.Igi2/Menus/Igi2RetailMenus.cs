@@ -1,5 +1,6 @@
 using System.IO;
 using ProjectIGI.Core.Configuration;
+using ProjectIGI.Engine.Tasks;
 using ProjectIGI.Engine.Titles;
 using ProjectIGI.Formats.Sprites;
 using ProjectIGI.Game.Igi2.Config;
@@ -155,7 +156,75 @@ internal sealed class Igi2RetailMenus : IRetailMenus
             return request.ExternalNatives(name, arguments);
         };
         menu.Manager.Initialize(menu, _shell, request.Logger);
+
+        // The port's own credits, on the retail credits screen (916). The script's TypeWriterBox
+        // never receives the game's own credits text in this port — nothing in the tree sets its
+        // Text, and mainmenu.qvm carries no credits body — so today the box is empty and the block
+        // below is what the screen shows. If the retail text ever loads, the block is appended
+        // after it instead of replacing it.
+        AppendPortCredits(menu);
     }
+
+    /// <summary>The id of I.G.I. 2's retail credits screen, as mainmenu.qvm numbers it.</summary>
+    internal const int CreditsScreenId = 916;
+
+    /// <summary>The port's credits, appended to the retail credits screen's typewriter box.</summary>
+    /// <remarks>
+    /// Kept verbatim from Ray's wording: the developer line, the Discord handle, the
+    /// where-you-downloaded-it note, and the repo URL as its own line. The tappable link itself is
+    /// the native GitHub button MainActivity shows while this screen is up — the typewriter box
+    /// carries no tap target, so the URL is printed here as well as on the button.
+    /// </remarks>
+    private const string PortCredits =
+        "Developer - Akash Ray\n" +
+        "Discord : akash_ray_1\n" +
+        "NOTE: if you downloaded this app from anywhere else, other than github, be sure to follow with the updates.\n" +
+        "https://github.com/rayishere0/IGI-2-Covert-Strike-Android";
+
+    /// <summary>Appends the port's credits to the retail credits screen's typewriter box.</summary>
+    /// <param name="menu">The loaded menu, whose credits screen holds the box.</param>
+    /// <remarks>
+    /// When the block is the whole text it is shown at once instead of typing out over ~25 s;
+    /// when it is appended after retail text, the reveal is left alone so the retail credits
+    /// keep their type-out and the block types out after them.
+    /// </remarks>
+    private static void AppendPortCredits(MenuSystem menu)
+    {
+        MenuScreenTask? credits = menu.FindScreen(CreditsScreenId);
+        if (credits is null)
+        {
+            return;
+        }
+
+        TypeWriterBoxTask? box = Descend(credits).OfType<TypeWriterBoxTask>().FirstOrDefault();
+        if (box is null)
+        {
+            return;
+        }
+
+        bool wasEmpty = box.Text.Length == 0;
+        box.Text = wasEmpty ? PortCredits : box.Text + "\n\n" + PortCredits;
+        if (wasEmpty)
+        {
+            box.Revealed = box.Text.Length;
+        }
+    }
+
+    /// <summary>Walks a menu window's descendants, as <c>MenuSystem</c> does for its own lookups.</summary>
+    private static IEnumerable<GameTask> Descend(GameTask task)
+    {
+        foreach (GameTask child in task.Children)
+        {
+            yield return child;
+            foreach (GameTask descendant in Descend(child))
+            {
+                yield return descendant;
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public int ActiveMenuScreen => _menu.Manager.Navigator.CurrentScreen;
 
     /// <summary>Loads the mission-select screen's cover art out of the app's own files.</summary>
     /// <remarks>

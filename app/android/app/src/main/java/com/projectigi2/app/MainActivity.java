@@ -122,6 +122,11 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private boolean socialsButtonShown = false;
     private static final String DISCORD_URL = "https://discord.gg/hSyz7KWZrg";
     private static final String REDDIT_URL = "https://www.reddit.com/user/project_igi_porter";
+    // GitHub: a small button in the bottom-left corner of the retail credits screen only,
+    // opening the port's repo. Same native-View reasoning as the socials button above.
+    private Button githubButton;
+    private boolean githubButtonShown = false;
+    private static final String GITHUB_URL = "https://github.com/rayishere0/IGI-2-Covert-Strike-Android";
     // True while this Activity is in the foreground. The quit watcher uses it to tell a Quit
     // in the main menu (foreground, game stops) from tabbing out (backgrounded, game stops too).
     private boolean isResumed = false;
@@ -381,6 +386,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         // Socials button: top-left, above the picker card and the game surface alike,
         // so one button serves both screens. Its visibility is polled below.
         setupSocialsButton();
+
+        // GitHub button: bottom-left, shown only while the retail credits screen is up.
+        // Its visibility is polled below, next to the socials button's.
+        setupGithubButton();
 
         setContentView(rootLayout);
 
@@ -1199,6 +1208,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
             public void run() {
                 updateImeVisibility();
                 updateSocialsButtonVisibility();
+                updateGithubButtonVisibility();
                 if (imeHandler != null) {
                     imeHandler.postDelayed(this, 250);
                 }
@@ -1323,6 +1333,58 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         if (show != socialsButtonShown) {
             socialsButtonShown = show;
             socialsButton.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void setupGithubButton() {
+        float density = getResources().getDisplayMetrics().density;
+        githubButton = new Button(this);
+        githubButton.setText("GITHUB\nIGI-2-Covert-Strike-Android");
+        githubButton.setTextSize(12);
+        githubButton.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        githubButton.setTextColor(Color.rgb(190, 215, 255));
+        githubButton.setGravity(Gravity.CENTER);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.rgb(20, 35, 60));
+        bg.setStroke((int)(1.5f * density), Color.rgb(80, 160, 255));
+        bg.setCornerRadius(6 * density);
+        githubButton.setBackground(bg);
+        githubButton.setPadding(
+                (int)(16 * density), (int)(8 * density), (int)(16 * density), (int)(8 * density));
+
+        // Bottom-left: the credits screen's OK button sits bottom-right, and the credits
+        // frame ends above here, so the button clears both. The credits text itself names
+        // the URL; this is the tap target that opens it.
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        params.gravity = Gravity.BOTTOM | Gravity.START;
+        params.bottomMargin = (int)(16 * density);
+        params.leftMargin = (int)(12 * density);
+        githubButton.setOnClickListener(v -> openSocialUrl(GITHUB_URL));
+        rootLayout.addView(githubButton, params);
+        githubButton.setVisibility(View.GONE);
+        githubButtonShown = false;
+    }
+
+    private void updateGithubButtonVisibility() {
+        if (githubButton == null) {
+            return;
+        }
+        // Only while the retail credits screen is up (MenuMode, no pause, no mission,
+        // active menu screen 916). Hidden on every other screen, in-mission, and while
+        // loading — same polling rhythm as the socials button above.
+        boolean show = false;
+        if (isGameStarted) {
+            try {
+                show = NativeEngine.nativeIsCreditsScreen();
+            } catch (Throwable ignored) {
+                // Native library not loaded yet: stay hidden until the game is up.
+                show = false;
+            }
+        }
+        if (show != githubButtonShown) {
+            githubButtonShown = show;
+            githubButton.setVisibility(show ? View.VISIBLE : View.GONE);
         }
     }
 
