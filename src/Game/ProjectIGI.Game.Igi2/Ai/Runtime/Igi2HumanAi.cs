@@ -303,7 +303,21 @@ public sealed partial class Igi2HumanAi : IIgi2SoldierMind
 
     /// <inheritdoc/>
     /// <remarks>The mind runs as its body's child, inside the body's delayed pass.</remarks>
-    public void Run(Igi2HumanSoldier soldier)
+    public void Run(Igi2HumanSoldier soldier) => RunCore(soldier, detect: true);
+
+    /// <inheritdoc cref="IIgi2SoldierMind.RunCutscene"/>
+    /// <remarks>
+    /// The cutscene's own actors still need their script and their body stepped, so the patrol and the scripted
+    /// animation run; what stays held is the spotting half — no target is looked for and no detection tick runs,
+    /// so nothing new is seen, identified, or fought while the scene plays. The squad and the alarm are held where
+    /// they tick, so no new orders or alarms arrive either.
+    /// </remarks>
+    public void RunCutscene(Igi2HumanSoldier soldier) => RunCore(soldier, detect: false);
+
+    /// <summary>Runs the mind one tick, with or without its spotting half.</summary>
+    /// <param name="soldier">The body.</param>
+    /// <param name="detect">Whether to look for a target and run detection; false while a cutscene plays.</param>
+    private void RunCore(Igi2HumanSoldier soldier, bool detect)
     {
         ArgumentNullException.ThrowIfNull(soldier);
 
@@ -333,7 +347,7 @@ public sealed partial class Igi2HumanAi : IIgi2SoldierMind
             DirectionChangeTimer--;
         }
 
-        IsDetection = GetTarget(visibleOnly: true) is not null;
+        IsDetection = detect && GetTarget(visibleOnly: true) is not null;
         MemberTimer++;
         _channels[22] = 0f;
         MaintainSoundQueue();
@@ -344,7 +358,7 @@ public sealed partial class Igi2HumanAi : IIgi2SoldierMind
             Flags |= 4;
         }
 
-        if ((Flags & 4) != 0 || (Detection.Enemies.Any(static e => e.IsIdentifying) && IsAnyIdentifyingBoneInView()))
+        if (detect && ((Flags & 4) != 0 || (Detection.Enemies.Any(static e => e.IsIdentifying) && IsAnyIdentifyingBoneInView())))
         {
             UseCombatView();
             _channels[29] = 1f;
@@ -381,7 +395,11 @@ public sealed partial class Igi2HumanAi : IIgi2SoldierMind
 
         RunScript();
         RunActionStack();
-        RunDetection();
+        if (detect)
+        {
+            RunDetection();
+        }
+
         IsAlarmed = false;
         if (soldier.IsActive)
         {
