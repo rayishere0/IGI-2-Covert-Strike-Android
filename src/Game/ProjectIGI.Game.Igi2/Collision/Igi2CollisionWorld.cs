@@ -249,6 +249,16 @@ public sealed class Igi2CollisionWorld : IIgi2CollisionQuery, IIgi2SightQuery, I
         ArgumentNullException.ThrowIfNull(models);
         ArgumentNullException.ThrowIfNull(terrainOwner);
 
+        // Whether the level has lift machinery: a Lift (Igi2LiftTask.TypeName) or Elevator placement
+        // anywhere in it. PR #55 gated the same rule on a task descended from one, which this scene does
+        // not record -- a placement carries its own type, not its owner's ancestry -- but a lift task
+        // places its own cab, so a Lift placement stands for a Lift task on every shipped level (the
+        // eight lifts in the corpus all place cabs). The gate matters because levels without lifts
+        // (M9/M10) author colbox* objects as ordinary static collision the player must hit.
+        bool hasLift = scene.StaticPlacements.Any(static placement =>
+            string.Equals(placement.TypeName, "Lift", StringComparison.Ordinal)
+            || string.Equals(placement.TypeName, "Elevator", StringComparison.Ordinal));
+
         List<Igi2RigidObject> objects = [];
         List<Igi2SplineSegment> segments = [];
         foreach (Igi2Placement placement in scene.StaticPlacements)
@@ -285,6 +295,13 @@ public sealed class Igi2CollisionWorld : IIgi2CollisionQuery, IIgi2SightQuery, I
                         isBuildingMesh: false)
                     {
                         Position = at.Position,
+
+                        // A lift-shaft box is the placed model itself, not an attachment of it, and its
+                        // model name is the colbox* name the level declares -- the same name PR #55 reads
+                        // off the drawable scene's instance. Only on a level with lift machinery.
+                        IsLiftShaftVolume = hasLift
+                            && depth == 0
+                            && modelName.StartsWith("colbox", StringComparison.OrdinalIgnoreCase),
                     };
                     for (int i = 0; i < solid.Orientation.Length; i++)
                     {
