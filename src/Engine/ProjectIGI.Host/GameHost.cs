@@ -78,6 +78,13 @@ public sealed partial class GameHost : IDisposable
     public bool KeyboardRequested { get; set; }
 
     /// <summary>
+    /// Whether the player asked for the main menu's load view via the Android LOAD GAME button.
+    /// The Android side sets this through the OpenLoadGame delegate; the game thread takes it up on the next frame, so the shell stack
+    /// is only ever touched from the thread that owns it. Cleared when taken, and dropped when there is no main menu to open it over.
+    /// </summary>
+    public bool LoadGameRequested { get; set; }
+
+    /// <summary>
     /// Gets whether the retail main menu is up over no mission (not the pause menu).
     /// The Android side polls this to show the socials button on the main menu only.
     /// </summary>

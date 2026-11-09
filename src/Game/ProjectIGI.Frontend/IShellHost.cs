@@ -93,6 +93,27 @@ public interface IShellHost
     /// <summary>Gets the running mission's own save games, for a title that keeps them, or <see langword="null"/>.</summary>
     ProjectIGI.Game.Player.ITitleSaveGames? MissionSaves => null;
 
+    /// <summary>Gets the active profile's save games the main menu can load, across every mission, or an empty list.</summary>
+    IReadOnlyList<ProjectIGI.Game.Player.LoadGameSave> LoadGameSaves => [];
+
+    /// <summary>Loads a save game: arms its slot for the next level, leaves the menu and starts its mission.</summary>
+    /// <param name="missionId">The mission the save holds.</param>
+    /// <param name="slot">The slot.</param>
+    /// <returns><see langword="false"/> when the save cannot be loaded — nothing starts then.</returns>
+    bool LoadSave(int missionId, int slot) => false;
+
+    /// <summary>Decodes a mission's briefing sprite for a save-slot thumbnail.</summary>
+    /// <param name="spriteName">The sprite's resource name, for example <c>mission1.spr</c>.</param>
+    /// <param name="width">Receives the image width.</param>
+    /// <param name="height">Receives the image height.</param>
+    /// <returns>The decoded pixels, or an empty array when the sprite cannot be shown.</returns>
+    ProjectIGI.Core.Graphics.Bgra32[] MissionThumbnail(string spriteName, out int width, out int height)
+    {
+        width = 0;
+        height = 0;
+        return [];
+    }
+
     /// <summary>Gets the mods that change play the running title is played with, which a save slot records.</summary>
     IReadOnlyList<ProjectIGI.Core.Content.ModReference> PlayedMods => [];
 

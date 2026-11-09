@@ -62,7 +62,10 @@ public sealed class ShellHost(
     Func<int>? getRenderScale = null,
     Action<int>? setRenderScale = null,
     Func<float>? getTouchSensitivity = null,
-    Action<float>? setTouchSensitivity = null) : IShellHost
+    Action<float>? setTouchSensitivity = null,
+    Func<IReadOnlyList<ProjectIGI.Game.Player.LoadGameSave>>? loadGameSaves = null,
+    Func<int, int, bool>? loadSave = null,
+    MissionThumbnailCapture? missionThumbnail = null) : IShellHost
 {
     /// <inheritdoc/>
     public void CustomizeTouchControls() => customizeTouchControls?.Invoke();
@@ -92,6 +95,25 @@ public sealed class ShellHost(
 
     /// <inheritdoc/>
     public ProjectIGI.Game.Player.ITitleSaveGames? MissionSaves => missionSaves?.Invoke();
+
+    /// <inheritdoc/>
+    public IReadOnlyList<ProjectIGI.Game.Player.LoadGameSave> LoadGameSaves => loadGameSaves?.Invoke() ?? [];
+
+    /// <inheritdoc/>
+    public bool LoadSave(int missionId, int slot) => loadSave?.Invoke(missionId, slot) ?? false;
+
+    /// <inheritdoc/>
+    public ProjectIGI.Core.Graphics.Bgra32[] MissionThumbnail(string spriteName, out int width, out int height)
+    {
+        if (missionThumbnail is { } capture)
+        {
+            return capture(spriteName, out width, out height);
+        }
+
+        width = 0;
+        height = 0;
+        return [];
+    }
 
     /// <inheritdoc/>
     public void StartMission(int missionId, int difficulty) => startMission(missionId, difficulty);
@@ -148,3 +170,10 @@ public sealed class ShellHost(
 /// <param name="height">Receives the capture height.</param>
 /// <returns>The captured pixels, or an empty array when no capture is available.</returns>
 public delegate Bgra32[] CaptureThumbnail(out int width, out int height);
+
+/// <summary>Decodes a mission's briefing sprite for a save-slot thumbnail.</summary>
+/// <param name="spriteName">The sprite's resource name, for example <c>mission1.spr</c>.</param>
+/// <param name="width">Receives the image width.</param>
+/// <param name="height">Receives the image height.</param>
+/// <returns>The decoded pixels, or an empty array when the sprite cannot be shown.</returns>
+public delegate Bgra32[] MissionThumbnailCapture(string spriteName, out int width, out int height);

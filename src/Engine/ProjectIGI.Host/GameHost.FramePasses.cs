@@ -3,6 +3,7 @@ using ProjectIGI.Core.Diagnostics;
 using ProjectIGI.Core.Graphics;
 using ProjectIGI.Engine.Time;
 using ProjectIGI.Frontend;
+using ProjectIGI.Frontend.Screens;
 using ProjectIGI.Game.World;
 using ProjectIGI.Host.Infrastructure;
 using ProjectIGI.Host.Menu;
@@ -180,6 +181,8 @@ public sealed partial class GameHost
     {
         if (!(_menuFlow.MenuMode && state.Shell is not null))
         {
+            // A load request has no menu to open over outside it, so a stale one is dropped here rather than carried into the next menu.
+            LoadGameRequested = false;
             DrainPressQueue(state, executeBinds: true);
         }
 
@@ -201,6 +204,18 @@ public sealed partial class GameHost
             {
                 var shellFrame = new LayoutContext(_window.Width, _window.Height);
                 state.Shell.Update(shellFrame, _window.Input, shellElapsed);
+            }
+
+            // The Android LOAD GAME button asks for the slots view through the OpenLoadGame delegate, which only raises the flag: the
+            // stack belongs to this thread, so the request is taken up here, on the frame, and only while the main menu is up — a tap
+            // that lands as a mission starts is dropped, not opened over the mission.
+            if (LoadGameRequested)
+            {
+                LoadGameRequested = false;
+                if (!_menuFlow.PauseMenu && _session.Mission is null && !BenchmarkRunning)
+                {
+                    state.Shell.Stack.Reset(new LoadGameScreen(state.Shell.Context), animate: false);
+                }
             }
 
             DrainPressQueue(state, executeBinds: false);

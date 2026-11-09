@@ -730,6 +730,9 @@ public sealed partial class GameHost
                 },
                 settingUnavailable: SettingUnavailable,
                 missionSaves: () => TitlePlayer?.SaveGames,
+                loadGameSaves: ListLoadGameSaves,
+                loadSave: LoadSaveGame,
+                missionThumbnail: MissionThumbnail,
                 inputBindingLabel: action => TitleInputBindings.Label(action, _gameplay?.InputBindings ?? []),
                 resetInputBindings: profile =>
                 {

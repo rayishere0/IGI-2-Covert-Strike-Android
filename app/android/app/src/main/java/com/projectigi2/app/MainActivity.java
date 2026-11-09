@@ -127,6 +127,12 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private Button githubButton;
     private boolean githubButtonShown = false;
     private static final String GITHUB_URL = "https://github.com/rayishere0/IGI-2-Covert-Strike-Android";
+    // Load Game: a small button in the bottom-left corner of the retail main menu only,
+    // opening the managed load view. Same native-View reasoning as the socials button above,
+    // and the same corner as the GitHub button — the two are never shown together, the
+    // GitHub button only on the credits screen and this one everywhere else on the menu.
+    private Button loadGameButton;
+    private boolean loadGameButtonShown = false;
     // True while this Activity is in the foreground. The quit watcher uses it to tell a Quit
     // in the main menu (foreground, game stops) from tabbing out (backgrounded, game stops too).
     private boolean isResumed = false;
@@ -390,6 +396,10 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         // GitHub button: bottom-left, shown only while the retail credits screen is up.
         // Its visibility is polled below, next to the socials button's.
         setupGithubButton();
+
+        // Load Game button: bottom-left, shown on the main menu except the credits screen.
+        // Its visibility is polled below, next to the socials and GitHub buttons'.
+        setupLoadGameButton();
 
         setContentView(rootLayout);
 
@@ -1209,6 +1219,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
                 updateImeVisibility();
                 updateSocialsButtonVisibility();
                 updateGithubButtonVisibility();
+                updateLoadGameButtonVisibility();
                 if (imeHandler != null) {
                     imeHandler.postDelayed(this, 250);
                 }
@@ -1385,6 +1396,64 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         if (show != githubButtonShown) {
             githubButtonShown = show;
             githubButton.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void setupLoadGameButton() {
+        float density = getResources().getDisplayMetrics().density;
+        loadGameButton = new Button(this);
+        loadGameButton.setText("LOAD GAME");
+        loadGameButton.setTextSize(12);
+        loadGameButton.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+        loadGameButton.setTextColor(Color.rgb(190, 215, 255));
+        loadGameButton.setGravity(Gravity.CENTER);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.rgb(20, 35, 60));
+        bg.setStroke((int)(1.5f * density), Color.rgb(80, 160, 255));
+        bg.setCornerRadius(6 * density);
+        loadGameButton.setBackground(bg);
+        loadGameButton.setPadding(
+                (int)(16 * density), (int)(8 * density), (int)(16 * density), (int)(8 * density));
+
+        // Bottom-left, in the GitHub button's style and place: the credits screen's OK button sits
+        // bottom-right, and the centred retail list sits clear of this corner. The GitHub button owns
+        // this corner on the credits screen, so this one stays hidden there.
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        params.gravity = Gravity.BOTTOM | Gravity.START;
+        params.bottomMargin = (int)(16 * density);
+        params.leftMargin = (int)(12 * density);
+        loadGameButton.setOnClickListener(v -> {
+            try {
+                NativeEngine.nativeOpenLoadGame();
+            } catch (Throwable ignored) {
+                // Native library not loaded yet: nothing to open.
+            }
+        });
+        rootLayout.addView(loadGameButton, params);
+        loadGameButton.setVisibility(View.GONE);
+        loadGameButtonShown = false;
+    }
+
+    private void updateLoadGameButtonVisibility() {
+        if (loadGameButton == null) {
+            return;
+        }
+        // Only on the main menu, and never on the credits screen, where the GitHub button owns the
+        // same bottom-left corner. Hidden in-mission, on pause, while loading, and on every retail
+        // sub-screen — same polling rhythm as the socials button above.
+        boolean show = false;
+        if (isGameStarted) {
+            try {
+                show = NativeEngine.nativeIsMainMenu() && !NativeEngine.nativeIsCreditsScreen();
+            } catch (Throwable ignored) {
+                // Native library not loaded yet: stay hidden until the game is up.
+                show = false;
+            }
+        }
+        if (show != loadGameButtonShown) {
+            loadGameButtonShown = show;
+            loadGameButton.setVisibility(show ? View.VISIBLE : View.GONE);
         }
     }
 

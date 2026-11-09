@@ -35,6 +35,7 @@ public static class Igi2ContentModules
         new Igi2MagicObjContentModule(),
         new Igi2ModelLodContentModule(),
         new Igi2MenuContentModule(),
+        new Saves.Igi2LoadGameModule(),
         new Igi2TaskTypeConstantsModule(),
     ];
 }
