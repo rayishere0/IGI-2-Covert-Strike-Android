@@ -40,6 +40,29 @@ internal static class HostConfiguration
     {
         GameConfig config = Read(fileSystem, logger);
 
+        // A file that names no players leaves the configuration with no active profile, and
+        // every profile-gated setting then silently does nothing: the gyroscope toggle in
+        // Settings writes nowhere, and the gyro gate in ApplyTouchControls never passes, so
+        // tilting the phone aims nothing - while a held thumb still drags the look, which
+        // reads as "gyro only works while touching". A fresh installation's retail file
+        // names no players either (its player is created on first run, into the sequel's
+        // own profiles, never into these), and a save written from that state reloads the
+        // same way, so the dead state is self-perpetuating. The no-file case already
+        // guarantees a profile (CreateDefault); extend the same guarantee to a loaded
+        // file with none. The default carries the same values the no-profile fallbacks
+        // already use (mouse sensitivity 0.4, gyro off), so nothing that worked changes -
+        // the settings simply gain a profile to act on.
+        if (config.Profiles.Count == 0)
+        {
+            PlayerProfile profile = PlayerProfile.CreateDefault();
+            profile.Name = GameConfig.DefaultProfileName;
+            profile.Difficulty = 1;
+            config.Add(profile);
+            logger.Information(
+                "Config",
+                "No profiles were loaded; created the default profile 'Joe' so the settings have a profile to act on.");
+        }
+
         // Whichever file it came from: a new player's profiles are the retail file's, and those carry the
         // original's arrow keys. See GameConfig.MigrateControls.
         if (config.MigrateControls())
