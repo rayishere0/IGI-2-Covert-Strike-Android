@@ -1,6 +1,7 @@
 using ProjectIGI.Core.Diagnostics;
 using ProjectIGI.Core.Numerics;
 using Silk.NET.OpenAL;
+using System.Diagnostics;
 
 namespace ProjectIGI.Audio.OpenAL;
 
@@ -55,6 +56,14 @@ public sealed partial class OpenAlAudioDevice : IAudioDevice
     private int _nextBufferHandle = 1;
     private AudioListenerState _listener = AudioListenerState.Default;
     private bool _disposed;
+
+    // When Update() last pumped the streaming voices, as a stopwatch timestamp, so a starved stream
+    // can report how long it went unpumped. When the last starvation line was written, and how many
+    // starvation events have been counted, not logged, since — a hitch storm must not flood logcat
+    // with one line per voice per frame. Diagnostics only: nothing here changes what PumpStream does.
+    private long _lastPumpTimestamp;
+    private long _lastStarveLogTimestamp;
+    private int _suppressedStarveLogs;
 
     /// <summary>Initializes a new instance of the <see cref="OpenAlAudioDevice"/> class.</summary>
     /// <param name="options">How to open the device.</param>
@@ -352,6 +361,8 @@ public sealed partial class OpenAlAudioDevice : IAudioDevice
                     _pool.Retire(voice);
                 }
             }
+
+            _lastPumpTimestamp = Stopwatch.GetTimestamp();
         }
     }
 
@@ -642,6 +653,10 @@ public sealed partial class OpenAlAudioDevice : IAudioDevice
         al.GetSourceProperty(voice.Source, GetSourceInteger.BuffersQueued, out int queued);
         if (queued == 0)
         {
+            // Diagnostics only: the retire itself is unchanged. A queue that emptied between pumps
+            // means the stream starved — the voice is gone, and whatever recreates it (a rain tap, the
+            // score) restarts from its fixed offset rather than where it stopped.
+            LogStarvation($"[AudioStarve] stream retired: voice {voice.Index} ({voice.Parameters.Category}, priority {voice.Parameters.Priority}, {voice.Stream?.Format.SampleRate ?? 0} Hz), {GapSinceLastPumpMs():F0} ms since last pump, queue empty.");
             _pool.Retire(voice);
             return;
         }
@@ -651,8 +666,35 @@ public sealed partial class OpenAlAudioDevice : IAudioDevice
         al.GetSourceProperty(voice.Source, GetSourceInteger.SourceState, out int state);
         if ((SourceState)state != SourceState.Playing)
         {
+            // Diagnostics only: the restart itself is unchanged.
+            LogStarvation($"[AudioStarve] stream restarted: voice {voice.Index} ({voice.Parameters.Category}, priority {voice.Parameters.Priority}, {voice.Stream?.Format.SampleRate ?? 0} Hz), {GapSinceLastPumpMs():F0} ms since last pump, {queued} buffer(s) still queued.");
             al.SourcePlay(voice.Source);
         }
+    }
+
+    /// <summary>Milliseconds since Update() last pumped the streams; zero before the first pump.</summary>
+    private double GapSinceLastPumpMs() => _lastPumpTimestamp == 0
+        ? 0
+        : Stopwatch.GetElapsedTime(_lastPumpTimestamp, Stopwatch.GetTimestamp()).TotalMilliseconds;
+
+    /// <summary>Writes one starvation line, at most one a second; further events in the window are counted and reported on the next line, not dropped silently.</summary>
+    private void LogStarvation(string message)
+    {
+        long now = Stopwatch.GetTimestamp();
+        if (Stopwatch.GetElapsedTime(_lastStarveLogTimestamp, now) < TimeSpan.FromSeconds(1))
+        {
+            _suppressedStarveLogs++;
+            return;
+        }
+
+        if (_suppressedStarveLogs > 0)
+        {
+            message += $" (+{_suppressedStarveLogs} further starvation event(s) in the last second)";
+            _suppressedStarveLogs = 0;
+        }
+
+        _lastStarveLogTimestamp = now;
+        _logger.Warning(LogCategory, message);
     }
 
     /// <summary>Pulls one buffer's worth of samples from a voice's stream into an OpenAL buffer.</summary>
