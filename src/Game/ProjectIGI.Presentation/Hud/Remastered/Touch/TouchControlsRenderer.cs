@@ -147,7 +147,7 @@ public static class TouchControlsRenderer
             {
                 TouchElementId.FireRight => "FIRE / AIM",
                 TouchElementId.FireLeft => "FIRE (L)",
-                TouchElementId.Scope => "SCOPE",
+                TouchElementId.Scope => "AIM / IRONSIGHT",
                 TouchElementId.Reload => "RELOAD",
                 TouchElementId.Jump => "JUMP",
                 TouchElementId.Crouch => "CROUCH",
@@ -404,6 +404,12 @@ public static class TouchControlsRenderer
                 painter.FillTriangle(P(0.95f, -0.32f), P(0.5f, -0.68f), P(0.5f, 0.04f), ink);
                 Line(0.8f, 0.38f, -0.55f, 0.38f);
                 painter.FillTriangle(P(-0.95f, 0.38f), P(-0.5f, 0.02f), P(-0.5f, 0.74f), ink);
+                break;
+            case TouchButton.PrevWeapon:
+                // One step back: a single left-pointing arrow, the Weapon glyph's
+                // left half on its own.
+                Line(0.8f, 0f, -0.5f, 0f);
+                painter.FillTriangle(P(-0.95f, 0f), P(-0.5f, -0.36f), P(-0.5f, 0.36f), ink);
                 break;
             case TouchButton.Pause:
                 painter.FillRect(new UiRect(c.X - (size * 0.48f), c.Y - (size * 0.6f), size * 0.3f, size * 1.2f), ink);

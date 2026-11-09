@@ -40,7 +40,7 @@ public enum TouchElementId
     /// <summary>Secondary left-hand fire button.</summary>
     FireLeft,
 
-    /// <summary>Alternate fire / sniper scope button.</summary>
+    /// <summary>Aim / ironsight button: alternate fire — the scope overlay on scoped weapons, the iron-sights zoom on the rest.</summary>
     Scope,
 
     /// <summary>Reload weapon button.</summary>
@@ -110,7 +110,7 @@ public enum TouchButton
     /// <summary>Fire; dragged, it turns the view, so a thumb aims and shoots at once.</summary>
     Fire,
 
-    /// <summary>The weapon's second use: the Dragunov's and the MP5's sights.</summary>
+    /// <summary>Aim / ironsight: hold to aim — the scope overlay on scoped weapons, the iron-sights (FOV) zoom on the rest.</summary>
     Scope,
 
     /// <summary>Reload.</summary>
@@ -843,14 +843,17 @@ public sealed class TouchControls
         _layout.Add(new TouchButtonSpot(TouchButton.Weapon, ResolvePos(TouchElementId.WeaponCard, defWeapon), Px(ButtonRadius) * Scale(TouchElementId.WeaponCard), ElementId: TouchElementId.WeaponCard));
         _layout.Add(new TouchButtonSpot(TouchButton.Use, ResolvePos(TouchElementId.Use, defUse), Px(SmallRadius) * Scale(TouchElementId.Use), ElementId: TouchElementId.Use));
 
-        // Drop sits beside the weapon button. The wheel is not laid out: it only
-        // opens and draws under the remastered HUD, which Android runs with off,
-        // so its button would sit there dead — it comes back with a standalone
-        // wheel draw. Previous weapon has no button (keyboard O still steps back).
+        // Drop sits beside the weapon button, previous weapon mirrors it on the
+        // other side: tap to step back one weapon (keyboard O does the same).
+        // The wheel is not laid out: it only opens and draws under the remastered
+        // HUD, which Android runs with off, so its button would sit there dead —
+        // it comes back with a standalone wheel draw.
         if (ShowIgi2Buttons)
         {
             _layout.Add(new TouchButtonSpot(TouchButton.DropWeapon, ResolvePos(TouchElementId.DropWeapon, new UiVec2(safe.X + (safe.Width * 0.5f) + Px(170f), safe.Bottom - Px(90f))), Px(SmallRadius) * Scale(TouchElementId.DropWeapon), ElementId: TouchElementId.DropWeapon));
         }
+
+        _layout.Add(new TouchButtonSpot(TouchButton.PrevWeapon, ResolvePos(TouchElementId.PrevWeapon, new UiVec2(safe.X + (safe.Width * 0.5f) - Px(170f), safe.Bottom - Px(90f))), Px(SmallRadius) * Scale(TouchElementId.PrevWeapon), ElementId: TouchElementId.PrevWeapon));
 
         // Thermal sight, on the right above the scope button (I.G.I. 2 only).
         if (ShowIgi2Buttons)
