@@ -548,7 +548,7 @@ public sealed partial class Igi2InputBoxTask : InputBoxTask, IIgi2MenuData
     }
 }
 
-/// <summary>A scrolling list, <c>ScrollListBox</c> (scrolllistbox.c): the shared one, with the focus script I.G.I. 2 adds.</summary>
+/// <summary>A scrolling list, <c>ScrollListBox</c> (scrolllistbox.c): the shared one, with I.G.I. 2's in-game menu data.</summary>
 public sealed partial class Igi2ScrollListBoxTask : ScrollListBoxTask, IIgi2MenuData, IIgi2MenuItemList
 {
     /// <summary>The script name level data instantiates this type under.</summary>
@@ -564,10 +564,6 @@ public sealed partial class Igi2ScrollListBoxTask : ScrollListBoxTask, IIgi2Menu
 
     /// <summary>Initializes a new instance of the <see cref="Igi2ScrollListBoxTask"/> class, with no item active.</summary>
     public Igi2ScrollListBoxTask() => ActiveId = -1;
-
-    /// <summary>Gets or sets the script that runs as the selected row changes.</summary>
-    [ScriptParam(ScriptParamType.VarString, "On Focus Item")]
-    public string OnFocusItem { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the menu whose natives its collect script fills it through.</summary>
     public Igi2InGameMenu? Menu { get; set; }

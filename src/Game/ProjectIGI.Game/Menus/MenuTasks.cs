@@ -503,13 +503,16 @@ public partial class ScrollListBoxTask : MenuWindowTask
 
     /// <summary>Gets or sets the expression run after the selection changes.</summary>
     /// <remarks>
-    /// The retail script's eighth value, after On Select Item: screen 914's mission list passes
-    /// <c>MenuStatsScreen_SetActiveMissionID(this.nActiveID)</c> here, which is what tells the stats
-    /// screen the selection moved. Without this parameter the value was dropped at spawn and the
-    /// stats box kept showing the mission the screen opened on.
+    /// The retail script's eighth value, after On Select Item — and its name is "On Focus Item",
+    /// not "Modify Data Script": the script declares the scrolling list's eighth parameter so, and
+    /// the spawn binds by name through <c>ByNameParameterAdapter</c> (see <c>Igi2MenuTypeSwap</c>),
+    /// so a parameter named "Modify Data Script" never receives it. Screen 914's mission list
+    /// passes <c>MenuStatsScreen_SetActiveMissionID(this.nActiveID)</c> here, which is what tells
+    /// the stats screen the selection moved. Named as "Modify Data Script" the value was dropped at
+    /// spawn and the stats box kept showing the mission the screen opened on.
     /// </remarks>
-    [ScriptParam(ScriptParamType.VarString, "Modify Data Script")]
-    public string ModifyDataScript { get; set; } = string.Empty;
+    [ScriptParam(ScriptParamType.VarString, "On Focus Item")]
+    public string OnFocusItem { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the selected entry's id, exported to script as <c>nActiveID</c>.</summary>
     public int ActiveId { get; set; }
