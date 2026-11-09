@@ -150,6 +150,14 @@ public readonly record struct HostOptions(
     /// </remarks>
     public GraphicsPreset FirstRunPreset { get; init; } = GraphicsPreset.Enhanced;
 
+    /// <summary>Gets the hardware tier this run starts on when there are no saved settings.</summary>
+    /// <remarks>
+    /// Classified from the adapter name by the host that knows the device (Android); Medium
+    /// everywhere else. Only a first run reads it: once there is a settings file, the file decides,
+    /// and GameHost applies it only when the console loaded nothing.
+    /// </remarks>
+    public HardwareTier HardwareTier { get; init; } = HardwareTier.Medium;
+
     /// <summary>
     /// Gets the one graphics preset this build allows, or <see langword="null"/> to let the player choose.
     /// </summary>
