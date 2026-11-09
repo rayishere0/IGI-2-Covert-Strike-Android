@@ -165,11 +165,12 @@ public sealed class MenuRenderer : IDisposable
 
     /// <summary>The tint the selection glow draws in.</summary>
     /// <remarks>
-    /// The sprite is white, so the tint is the colour: I.G.I. 2's blue accent, the same
-    /// (80, 160, 255) the app's blue restyle uses. The sprite's own soft alpha shapes the halo;
-    /// the tint stays opaque.
+    /// The sprite is white, so the tint is the colour: a pale blue at well under full strength, the
+    /// faint bar retail lights the selected row with, rather than the saturated (80, 160, 255) the
+    /// app's blue restyle used. The sprite's own soft alpha shapes the halo and the tint's alpha
+    /// thins it further; the same tint backs the flat bar drawn when the sprite is missing.
     /// </remarks>
-    private static readonly Bgra32 SelectionGlowTint = Bgra32.FromRgb(80, 160, 255);
+    private static readonly Bgra32 SelectionGlowTint = Bgra32.FromRgba(150, 195, 255, 120);
 
     /// <summary>Draws the mouse cursor.</summary>
     /// <param name="batch">The batch to draw into.</param>
@@ -515,17 +516,20 @@ public sealed class MenuRenderer : IDisposable
 
     /// <summary>Draws the selection glow behind a lit entry or a selected row.</summary>
     /// <remarks>
-    /// A missing sprite draws nothing rather than failing the screen: the glow is chrome, and a
-    /// menu archive without it still has to show its entries.
+    /// A missing sprite draws a flat translucent bar in the same tint rather than failing the
+    /// screen or silently dropping the selection: the glow is chrome, and a menu archive without
+    /// it still has to show which entry is lit.
     /// </remarks>
     private void DrawSelectionGlow(SpriteBatch batch, int x, int y, int width, int height, int screenWidth, int screenHeight)
     {
+        RectF area = Centred(x, y, width, height, screenWidth, screenHeight);
         if (TryGetSprite(SelectionGlowSprite) is not { } glow || glow.Asset.Frames.Count == 0)
         {
+            batch.FillRect(area, SelectionGlowTint);
             return;
         }
 
-        glow.DrawStretched(batch, 0, Centred(x, y, width, height, screenWidth, screenHeight), SelectionGlowTint);
+        glow.DrawStretched(batch, 0, area, SelectionGlowTint);
     }
 
     /// <summary>Draws a slider: its box, its two arrows and its carret.</summary>
@@ -761,15 +765,15 @@ public sealed class MenuRenderer : IDisposable
             Bgra32.White);
     }
 
-    /// <summary>Draws the mission a stats screen shows: its name, then its description wrapped to the box.</summary>
+    /// <summary>Draws the stats table for the mission the list sits on: Achieved against Target.</summary>
     /// <remarks>
-    /// Screen 914's 986: 420 by 130 in <c>font4.fnt</c>. The name and description come from the
-    /// manager's configuration, which is the only thing that can reach the title's catalogue; with no
-    /// mission to show — no provider, no active mission, or no font — this draws nothing inside the
-    /// box, the way a picture box with no picture draws its empty box and nothing in it. The layout
-    /// itself is a first pass, not retail: the script gives the box and the font and nothing else, so
-    /// the name goes on the first row and the description wraps under it. A device screenshot should
-    /// confirm the rows sit inside the box rather than under the list.
+    /// Screen 914's 986: 420 by 130 in <c>font4.fnt</c>. Retail shows a table here, not the
+    /// mission's name and description — the description lives on the loading screen, which still
+    /// reads it through <c>IMenuMissionStats.TryGetActiveMissionStats</c>. The six rows are the
+    /// retail ones, hardcoded in English: the script spawns no label widgets for them, so there are
+    /// no localised keys to resolve. The columns are measured off the font, so the table fits
+    /// whatever size <c>font4.fnt</c> turns out to be; rows past the box are dropped, not drawn over
+    /// the frame below.
     /// </remarks>
     private void DrawStatsScreen(SpriteBatch batch, MenuStatsScreenTask stats, int screenWidth, int screenHeight)
     {
@@ -781,101 +785,53 @@ public sealed class MenuRenderer : IDisposable
 
         IMenuMissionStats? provider = (stats.Manager as MenuManagerTask)?.Configuration as IMenuMissionStats;
         if (provider is null
-            || !provider.TryGetActiveMissionStats(out string name, out string description))
+            || !provider.TryGetActiveMissionTable(out MissionStatsTable table))
         {
             return;
         }
 
+        (string Label, string Achieved, string Target)[] rows = new (string, string, string)[]
+        {
+            ("Category", string.Empty, string.Empty),
+            ("Time To Complete Mission", table.TimeAchieved, table.TimeTarget),
+            ("Times Spotted", table.TimesSpottedAchieved, table.TimesSpottedTarget),
+            ("Health", table.HealthAchieved, table.HealthTarget),
+            ("Accuracy", table.AccuracyAchieved, table.AccuracyTarget),
+            ("Rank", table.RankAchieved, string.Empty),
+        };
+
         int lineHeight = Math.Max(1, (int)font.Measure("A").Height);
-        int rows = Math.Max(1, stats.LayoutHeight / lineHeight);
-        int row = 0;
+        int maxRows = Math.Max(0, stats.LayoutHeight / lineHeight);
 
-        // The name on the first row, the description wrapped under it, both in the white the other
-        // boxes' body text draws in; rows past the box are dropped, not drawn over the frame below.
-        if (name.Length > 0 && row < rows)
+        // The columns are measured, not fixed: the label column is as wide as its longest row,
+        // then a gap, then each value column as wide as its widest cell (header included).
+        int labelWidth = 0;
+        int achievedWidth = (int)font.Measure("Achieved").Width;
+        int targetWidth = (int)font.Measure("Target").Width;
+        foreach ((string label, string achieved, string target) in rows)
         {
-            Draw(batch, font, name, stats.LayoutX + 2, stats.LayoutY + 1 + (row * lineHeight), screenWidth, screenHeight);
-            row++;
+            labelWidth = Math.Max(labelWidth, (int)font.Measure(label).Width);
+            achievedWidth = Math.Max(achievedWidth, (int)font.Measure(achieved).Width);
+            targetWidth = Math.Max(targetWidth, (int)font.Measure(target).Width);
         }
 
-        foreach (string line in WrapText(font, description, Math.Max(0, stats.LayoutWidth - 4)))
+        int labelX = stats.LayoutX + 2;
+        int achievedX = labelX + labelWidth + 8;
+        int targetX = achievedX + achievedWidth + 12;
+
+        // The header row, then the stats, both in the white the other boxes' body text draws in.
+        if (maxRows > 0)
         {
-            if (row >= rows)
-            {
-                break;
-            }
-
-            Draw(batch, font, line, stats.LayoutX + 2, stats.LayoutY + 1 + (row * lineHeight), screenWidth, screenHeight);
-            row++;
-        }
-    }
-
-    /// <summary>Wraps text to a pixel width, keeping explicit line breaks.</summary>
-    /// <param name="font">The font the width is measured in.</param>
-    /// <param name="text">The text to wrap.</param>
-    /// <param name="maxWidth">The widest a row may be, in authored pixels; zero or less wraps nothing.</param>
-    /// <returns>One entry per row, in order; empty when there is nothing to show.</returns>
-    private static IEnumerable<string> WrapText(BitmapTextRenderer font, string text, int maxWidth)
-    {
-        ArgumentNullException.ThrowIfNull(font);
-        ArgumentNullException.ThrowIfNull(text);
-
-        foreach (string paragraph in text.Split('\n'))
-        {
-            // A CRLF description leaves the carriage return on the paragraph's last word.
-            string line = string.Empty;
-            foreach (string word in paragraph.TrimEnd('\r').Split(' ', StringSplitOptions.RemoveEmptyEntries))
-            {
-                foreach (string piece in SplitToWidth(font, word, maxWidth))
-                {
-                    string candidate = line.Length == 0 ? piece : line + " " + piece;
-                    if (maxWidth > 0 && font.Measure(candidate).Width > maxWidth && line.Length > 0)
-                    {
-                        yield return line;
-                        line = piece;
-                    }
-                    else
-                    {
-                        line = candidate;
-                    }
-                }
-            }
-
-            if (line.Length > 0)
-            {
-                yield return line;
-            }
-        }
-    }
-
-    /// <summary>Splits one word into pieces that fit the width, whole when it already does.</summary>
-    /// <param name="font">The font the width is measured in.</param>
-    /// <param name="word">The word to split.</param>
-    /// <param name="maxWidth">The widest a piece may be, in authored pixels; zero or less splits nothing.</param>
-    /// <returns>The pieces, in order.</returns>
-    private static IEnumerable<string> SplitToWidth(BitmapTextRenderer font, string word, int maxWidth)
-    {
-        ArgumentNullException.ThrowIfNull(font);
-        ArgumentNullException.ThrowIfNull(word);
-
-        if (maxWidth <= 0 || font.Measure(word).Width <= maxWidth)
-        {
-            yield return word;
-            yield break;
+            Draw(batch, font, "Achieved", achievedX, stats.LayoutY + 1, screenWidth, screenHeight);
+            Draw(batch, font, "Target", targetX, stats.LayoutY + 1, screenWidth, screenHeight);
         }
 
-        int start = 0;
-        while (start < word.Length)
+        for (int row = 0; row < rows.Length && row + 1 < maxRows; row++)
         {
-            int length = 1;
-            while (start + length < word.Length
-                && font.Measure(word[start..(start + length + 1)]).Width <= maxWidth)
-            {
-                length++;
-            }
-
-            yield return word.Substring(start, length);
-            start += length;
+            int y = stats.LayoutY + 1 + ((row + 1) * lineHeight);
+            Draw(batch, font, rows[row].Label, labelX, y, screenWidth, screenHeight);
+            Draw(batch, font, rows[row].Achieved, achievedX, y, screenWidth, screenHeight);
+            Draw(batch, font, rows[row].Target, targetX, y, screenWidth, screenHeight);
         }
     }
 
@@ -906,6 +862,13 @@ public sealed class MenuRenderer : IDisposable
             }
 
             int y = box.LayoutY + 1 + (row * lineHeight);
+            // Rows start 1px inside the frame, so the last one can end a pixel past the box bottom;
+            // stop at the box instead of drawing over the frame below.
+            if (y + lineHeight > box.LayoutY + box.LayoutHeight)
+            {
+                break;
+            }
+
             if (index == box.Index)
             {
                 // The selected row gets a bar behind it, the way MenuText lights the selected entry:
