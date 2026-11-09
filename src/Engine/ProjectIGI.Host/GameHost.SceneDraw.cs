@@ -4,6 +4,7 @@ using ProjectIGI.Core.Diagnostics;
 using ProjectIGI.Core.Graphics;
 using ProjectIGI.Core.Numerics;
 using ProjectIGI.Game;
+using ProjectIGI.Game.Ai;
 using ProjectIGI.Game.Player;
 using ProjectIGI.Game.World;
 using ProjectIGI.Host.DevTools;
@@ -243,8 +244,16 @@ public sealed partial class GameHost
 
         // Soldiers draw under the same world projection: 0x4D9620 leaves +212 at 1, so 0x49F700
         // never swaps in the view-model block for them.
-        _soldiers?.ObserveView(eye, projection);
-        _soldiers?.Draw(eye, projection);
+        //
+        // Over the menu the backdrop's soldiers are normally shadow casters only -- a backdrop
+        // shows a place, not the guards standing in it. The benchmark's drone view is the
+        // exception: it draws them, standing at their posts, so the scene the tiers are measured
+        // on has the people in it. They stand in their spawn poses (the backdrop's loop never
+        // advances, so nothing patrols); the player body and the held-weapon draws below stay on
+        // the mission's soldiers only, because a backdrop has no player.
+        ISoldierBodies? drawnSoldiers = _soldiers ?? (BenchmarkRunning ? _menuBackdrop.Soldiers : null);
+        drawnSoldiers?.ObserveView(eye, projection);
+        drawnSoldiers?.Draw(eye, projection);
 
         // Whatever the title, or a mod, draws for particular tasks of the level (PresenterRegistry.ForTask).
         foreach (ITaskPresenter taskPresenter in _taskPresenters)
