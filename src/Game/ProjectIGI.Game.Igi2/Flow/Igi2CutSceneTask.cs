@@ -1,3 +1,4 @@
+using ProjectIGI.Core.Diagnostics;
 using ProjectIGI.Core.Numerics;
 using ProjectIGI.Engine.Tasks;
 using ProjectIGI.Game.Igi2.World;
@@ -192,6 +193,13 @@ public sealed partial class Igi2CutSceneTask : Igi2Task
 
             // The clock the placed view is from, for the subtitles and the band filter to count by.
             level.SetCutsceneTick(this, Tick);
+
+            // One line a cutscene-second, so the next video of a cutscene is provable: whether the
+            // cutscene's clock kept step with the level's, or stalled behind it while the level ran on.
+            if (Tick % Igi2LevelRun.Frequency == 0 && level.Logger is { } log)
+            {
+                log.Information("Cutscene", $"Cutscene tick {Tick} at level tick {level.Ticks}.");
+            }
 
             if (!_forward!.IsEmpty)
             {

@@ -160,6 +160,10 @@ internal sealed class WorldPlacementTransforms
     /// <param name="drawOrientation">Receives the orientation to draw with.</param>
     /// <param name="rotorDraw">Receives the motion-blurred rotor state, when one applies.</param>
     /// <param name="hasRotorDraw">Receives whether a rotor state applies.</param>
+    /// <param name="ownerMoved">
+    /// Whether the live transforms moved the placement away from where the level placed it, for the
+    /// rotor's spin; the selection outline passes nothing, so its rotors never spin from this path.
+    /// </param>
     /// <remarks>
     /// A door swings, an elevator carries what stands on it, a cutscene can seize either, and a rotor
     /// smears across the frame. Pulled out of the draw loop so the selection outline resolves the same
@@ -171,7 +175,8 @@ internal sealed class WorldPlacementTransforms
         out Vector3d drawPosition,
         out Matrix3f drawOrientation,
         out RotorDrawState rotorDraw,
-        out bool hasRotorDraw)
+        out bool hasRotorDraw,
+        bool ownerMoved = false)
     {
         drawPosition = placement.Position;
         drawOrientation = placement.Orientation;
@@ -208,7 +213,7 @@ internal sealed class WorldPlacementTransforms
             drawPosition = elevatorPosition;
             drawOrientation = elevatorOrientation;
         }
-        else if (Cutscenes?.TryGetRotorDrawState(placement, out rotorDraw) == true)
+        else if (Cutscenes?.TryGetRotorDrawState(placement, out rotorDraw, ownerMoved) == true)
         {
             drawPosition = rotorDraw.Position;
             hasRotorDraw = true;

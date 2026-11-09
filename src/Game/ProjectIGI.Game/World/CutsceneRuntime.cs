@@ -716,7 +716,8 @@ public sealed class CutsceneRuntime
     public bool TryGetWheelDraw(WorldPlacement placement, out Matrix3f rotation) => _draw.TryGetWheelDraw(placement, out rotation);
 
     /// <inheritdoc cref="CutsceneVehicleDraw.TryGetRotorDrawState"/>
-    public bool TryGetRotorDrawState(WorldPlacement placement, out RotorDrawState draw) => _draw.TryGetRotorDrawState(placement, out draw);
+    public bool TryGetRotorDrawState(WorldPlacement placement, out RotorDrawState draw, bool ownerMoved = false) =>
+        _draw.TryGetRotorDrawState(placement, ownerMoved, out draw);
 
     /// <inheritdoc cref="CutsceneAttachments.TryGetAttachedDrawTransform"/>
     public bool TryGetAttachedDrawTransform(GameTask task, out Vector3d position, out Matrix3f orientation) =>
