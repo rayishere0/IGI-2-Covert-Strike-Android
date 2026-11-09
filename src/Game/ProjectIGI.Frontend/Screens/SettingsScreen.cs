@@ -1,5 +1,6 @@
 using System.Globalization;
 using ProjectIGI.Core.Graphics;
+using ProjectIGI.Game.Player;
 using ProjectIGI.Input;
 using ProjectIGI.Rendering;
 using ProjectIGI.UI;
@@ -196,6 +197,99 @@ public sealed class SettingsScreen : ShellScreen
             Width = 1150f,
         };
         _scroll.SetContent(configStack);
+
+        // ── Save game (in-mission only) ─────────────────────────────────
+        // The running mission's own saves, offered here instead of a screen of their own: the pause
+        // menu is where the player already is, and a save is an action, not a setting -- tapping a
+        // slot writes it at once, and Cancel below never undoes it, so no save state joins the
+        // _initial* snapshots or the Cancel restore block. Gated on Context.InGame (set by
+        // Shell.OpenPauseMenu), so settings opened from the main menu show no SAVE GAME section at
+        // all; a title that keeps no saves (MissionSaves null) shows none either, and on hard
+        // difficulty the title offers no slots, so the section says so instead of offering one.
+        // Slot rows come from ITitleSaveGames.Slots (Context.Host.MissionSaves, fed by
+        // GameHost.Startup) and save through MissionSaves.Save(slot): the engine already writes the
+        // save, this screen only triggers it. A row shows its slot's mission time
+        // (TitleSaveSlot.Description); the date a save was written is not on that contract -- the
+        // concrete Igi2MissionSaves.SlotLabel has it, but the Frontend does not reference the Igi2
+        // assembly -- so it is not shown here.
+        if (Context.InGame && Context.Host.MissionSaves is { } saves)
+        {
+            configStack.AddChild(new GroupHeader(theme, "Save game") { Margin = new Thickness(0f, 18f, 0f, 4f) });
+
+            var saveSlotButtons = new List<Button>();
+            var savesLeftLabel = new Label(theme.Body, string.Empty, 20f, theme.TextSecondary);
+            var saveMessageLabel = new Label(theme.Body, string.Empty, 20f, theme.Accent);
+            int confirmedSaveSlot = -1;
+
+            void RefreshSaveSection()
+            {
+                IReadOnlyList<TitleSaveSlot> slots = saves.Slots;
+                for (int i = 0; i < saveSlotButtons.Count && i < slots.Count; i++)
+                {
+                    saveSlotButtons[i].Text = SaveSlotCaption(slots[i]);
+                }
+
+                int left = saves.SavesLeft;
+                savesLeftLabel.Text = left < 0
+                    ? string.Empty
+                    : string.Create(CultureInfo.InvariantCulture, $"Saves left this mission: {left}");
+            }
+
+            foreach (TitleSaveSlot slot in saves.Slots)
+            {
+                int number = slot.Slot;
+                var saveButton = new Button(theme, SaveSlotCaption(slot))
+                {
+                    Width = 1150f,
+                    Height = 68f,
+                };
+                saveButton.Activated += () =>
+                {
+                    // Overwrite asks twice, the two-tap confirm from MissionSavesScreen.Choose: the
+                    // first tap on a slot that already holds a save only warns, the second writes.
+                    if (saves.SavesLeft == 0)
+                    {
+                        confirmedSaveSlot = -1;
+                        saveMessageLabel.Text = "No saves are left for this mission.";
+                        return;
+                    }
+
+                    TitleSaveSlot current = default;
+                    foreach (TitleSaveSlot held in saves.Slots)
+                    {
+                        if (held.Slot == number)
+                        {
+                            current = held;
+                            break;
+                        }
+                    }
+
+                    if (current.IsUsed && confirmedSaveSlot != number)
+                    {
+                        confirmedSaveSlot = number;
+                        saveMessageLabel.Text = string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"Slot {number + 1} holds a save - mission time {current.Description}. Choose it again to overwrite.");
+                        return;
+                    }
+
+                    confirmedSaveSlot = -1;
+                    saveMessageLabel.Text = saves.Save(number) ? "Saving complete." : "Saving failed.";
+                    RefreshSaveSection();
+                };
+                saveSlotButtons.Add(saveButton);
+                configStack.AddChild(saveButton);
+            }
+
+            configStack.AddChild(savesLeftLabel);
+            configStack.AddChild(saveMessageLabel);
+            if (saveSlotButtons.Count == 0)
+            {
+                saveMessageLabel.Text = "This difficulty keeps no saves.";
+            }
+
+            RefreshSaveSection();
+        }
 
         // ── Option 1: On-Screen Touch Controls Customizer ─────────────────
         var customizeRow = new FlexPanel
@@ -751,6 +845,12 @@ public sealed class SettingsScreen : ShellScreen
 
         return root;
     }
+
+    /// <summary>A save slot's row as the settings screen shows it: its number and what it holds, or that it is empty.</summary>
+    private static string SaveSlotCaption(TitleSaveSlot slot) =>
+        slot.IsUsed
+            ? string.Create(CultureInfo.InvariantCulture, $"Slot {slot.Slot + 1:00} - Mission time {slot.Description}")
+            : string.Create(CultureInfo.InvariantCulture, $"Slot {slot.Slot + 1:00} - Empty");
 
     private void CloseConfig()
     {
