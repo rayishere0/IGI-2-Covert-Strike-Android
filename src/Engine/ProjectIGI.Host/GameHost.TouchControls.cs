@@ -41,6 +41,12 @@ public sealed partial class GameHost
     // Control stays held the whole time the stick is off centre.
     private const int ComputerStickStepTicks = 3;
     private int _computerStickPulse;
+    // Gyroscope diagnostics, one line a second (see LogGyro): the motion drained
+    // since the last line, so a device test can tell the sensor delivering
+    // nothing from the drain never running from motion added but never consumed.
+    private long _gyroLogLastTimestamp;
+    private float _gyroLogYaw;
+    private float _gyroLogPitch;
 
     /// <summary>The action the crouch button holds: the running title's own crouch where it replaces the shared one (I.G.I. 2), else the shared action. The shared crouch bit is stripped for a replacing title, so sending the shared name would silently do nothing — the old button only worked because the title's alternate row happened to share the same key.</summary>
     private string CrouchAction()
@@ -110,16 +116,46 @@ public sealed partial class GameHost
         return play ? TouchControlMode.Play : TouchControlMode.Pointer;
     }
 
+    /// <summary>Gyroscope diagnostics, one line a second: the motion drained since the last line, the toggle and sensitivity, the control mode, and whether any finger is down. A device test that tilts with no finger down can then tell the sensor delivering nothing (drained 0.00) from the drain never running (no lines at all) from motion added but never consumed (drained non-zero, view still).</summary>
+    private void LogGyro(float yaw, float pitch, TouchControlMode mode, PlayerProfile? profile, InputState input)
+    {
+        _gyroLogYaw += yaw;
+        _gyroLogPitch += pitch;
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (_gyroLogLastTimestamp != 0 && now - _gyroLogLastTimestamp < System.Diagnostics.Stopwatch.Frequency)
+        {
+            return;
+        }
+
+        _gyroLogLastTimestamp = now;
+        _logger.Information("Gyro", $"Drained yaw={_gyroLogYaw:F3} pitch={_gyroLogPitch:F3} enabled={profile?.GyroEnabled} sensitivity={profile?.GyroSensitivity} mode={mode} touchInUse={input.Touch.InUse} anyDown={input.Touch.AnyDown}");
+        _gyroLogYaw = 0f;
+        _gyroLogPitch = 0f;
+    }
+
     /// <summary>Reads the frame's fingers and presses what they hold. Called straight after the window's events are taken.</summary>
     private void ApplyTouchControls(FrameLoopState state)
     {
         InputState input = _window.Input;
+
+        // Gyroscope aim: drain the window's accumulated angle deltas every pass,
+        // before any early return, and apply them only in Play mode with the
+        // profile's toggle on. The drain used to live inside the Play block, so
+        // tilting in a menu, a cutscene or the map computer piled up undrained
+        // and fired as one giant turn the moment play resumed — the old comment
+        // claimed the motion was drained every frame, which was only true in
+        // Play. The mode and profile are read here too, so the once-a-second
+        // gyro log line still reports them on passes that return early.
+        (float gyroYaw, float gyroPitch) = _window.TakeGyroMotion();
+        TouchControlMode mode = CurrentTouchMode();
+        PlayerProfile? profile = _configuration.Active;
+        LogGyro(gyroYaw, gyroPitch, mode, profile, input);
+
         if (!input.Touch.InUse || _window.Width <= 0 || _window.Height <= 0)
         {
             return;
         }
 
-        TouchControlMode mode = CurrentTouchMode();
         // I.G.I. 2's own buttons only exist when the running title defines them; under
         // any other title they stay out of the layout instead of sitting there dead.
         // The layout re-runs when this flips, so a title change mid-session is picked up.
@@ -151,7 +187,6 @@ public sealed partial class GameHost
         // weapon keeps firing for the whole customization session.
         _touchKeysWanted.Clear();
         _touchButtonsWanted.Clear();
-        PlayerProfile? profile = _configuration.Active;
 
         if (mode == TouchControlMode.Computer)
         {
@@ -334,17 +369,16 @@ public sealed partial class GameHost
             }
 
             // Gyroscope aim: tilt the phone to turn the view. Only in Play mode and
-            // only when the profile enables it. The window accumulates the gyro's
-            // angle deltas (radians) each frame; here they become mouse counts so the
-            // existing look path (sensitivity, inversion, zoom scaling) applies.
+            // only when the profile enables it. The motion was drained at the top of
+            // this method, so what arrives here is only this pass's deltas (radians);
+            // here they become mouse counts so the existing look path (sensitivity,
+            // inversion, zoom scaling) applies. Outside Play, or with the toggle
+            // off, the drained motion is discarded — that is what stops menu
+            // tilting from spinning the view on mission entry.
             // The gyro has its own sensitivity (profile.GyroSensitivity, set by the
             // slider in Settings), separate from the mouse sensitivity.
             // Axis signs are a best guess for landscape and must be verified on a
             // real device (flip yaw/pitch here if a direction feels backwards).
-            // The motion is drained every frame even while disabled: the sensor keeps
-            // feeding the window, and a stale pile-up would spin the view the moment
-            // the toggle is switched on.
-            (float gyroYaw, float gyroPitch) = _window.TakeGyroMotion();
             if (profile is { GyroEnabled: true } && (gyroYaw != 0f || gyroPitch != 0f))
             {
                 float radiansPerCount = MouseLookSettings.FromSensitivity(

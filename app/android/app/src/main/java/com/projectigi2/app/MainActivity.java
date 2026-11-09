@@ -101,6 +101,12 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     private Sensor gyroSensor;
     private SensorEventListener gyroListener;
     private long lastGyroTimestampNs = 0;
+    // Gyroscope diagnostics: sensor events received and forwarded to the engine,
+    // and the last log time (uptime ms), for a once-a-second log line so a
+    // device test can tell a silent sensor from a drain that never runs.
+    private long gyroEventCount = 0;
+    private long gyroForwardedCount = 0;
+    private long lastGyroLogMs = 0;
     // Soft keyboard: a hidden, zero-size EditText the IME types into, and a poller
     // that shows/hides the keyboard when the game focuses a text field.
     private EditText hiddenInput;
@@ -1092,11 +1098,26 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         if (sensorManager != null) {
             gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         }
+        if (gyroSensor == null) {
+            Log.w(TAG, "Gyro: no TYPE_GYROSCOPE sensor on this device; gyroscope aim cannot work.");
+        } else {
+            Log.i(TAG, "Gyro: sensor present: " + gyroSensor.getName());
+        }
         gyroListener = new SensorEventListener() {
             @Override
             public void onSensorChanged(SensorEvent event) {
                 if (!isGameStarted || gyroSensor == null) {
                     return;
+                }
+                gyroEventCount++;
+                // One line a second, not one per event: the sensor fires ~100x a
+                // second at SENSOR_DELAY_GAME, and the count is what the test
+                // needs — events arriving here but never drained means the
+                // managed side is the suspect, not the sensor.
+                long nowMs = SystemClock.elapsedRealtime();
+                if (nowMs - lastGyroLogMs >= 1000) {
+                    lastGyroLogMs = nowMs;
+                    Log.i(TAG, "Gyro: events=" + gyroEventCount + " forwarded=" + gyroForwardedCount);
                 }
                 if (lastGyroTimestampNs == 0) {
                     lastGyroTimestampNs = event.timestamp;
@@ -1117,6 +1138,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
                 // flip the sign of that line only.
                 float yawDelta = -event.values[0] * dt;
                 float pitchDelta = -event.values[1] * dt;
+                gyroForwardedCount++;
                 NativeEngine.nativeOnGyro(yawDelta, pitchDelta);
             }
 
