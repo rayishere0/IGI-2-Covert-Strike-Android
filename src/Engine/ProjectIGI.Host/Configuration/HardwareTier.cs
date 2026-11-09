@@ -101,15 +101,21 @@ public static class HardwareTiering
     /// API version below 1.2, for example -- and not read by this version, which classifies on the
     /// name alone.
     /// </param>
+    /// <remarks>
+    /// The name is normalized before matching (see <see cref="NormalizeAdapterName"/>): vendor
+    /// trademark markers split the model number from its family, so "Adreno (TM) 710" would
+    /// otherwise miss "Adreno 7" and a 710 would classify Medium instead of High.
+    /// </remarks>
     public static HardwareTier Classify(string? adapterName, string? apiName)
     {
         _ = apiName;
-        if (ContainsAny(adapterName, HighSubstrings))
+        string? normalized = NormalizeAdapterName(adapterName);
+        if (ContainsAny(normalized, HighSubstrings))
         {
             return HardwareTier.High;
         }
 
-        if (ContainsAny(adapterName, LowSubstrings))
+        if (ContainsAny(normalized, LowSubstrings))
         {
             return HardwareTier.Low;
         }
@@ -234,6 +240,29 @@ public static class HardwareTiering
         ReconstructionCVars.DynamicTargetFps.Value = values.DynamicTargetFps;
         ReconstructionCVars.ViewDistance.Value = values.ViewDistance;
         MaterialCVars.TextureQuality.Value = values.TextureQuality;
+    }
+
+    /// <summary>
+    /// Normalizes an adapter name for matching. Vendor names carry trademark markers that split
+    /// the model number from its family: "Adreno (TM) 710" contains no "Adreno 7" substring, so
+    /// a 710 classified Medium instead of High. Markers are replaced with a space, never deleted,
+    /// so a marker glued to the number ("Adreno(TM)710") still separates the same way, and runs
+    /// of whitespace collapse to one. Only the matcher's view changes: no tier boundary moves.
+    /// </summary>
+    private static string? NormalizeAdapterName(string? adapterName)
+    {
+        if (string.IsNullOrWhiteSpace(adapterName))
+        {
+            return adapterName;
+        }
+
+        string normalized = adapterName;
+        foreach (string marker in new[] { "(TM)", "(R)", "(C)", "™", "®", "©" })
+        {
+            normalized = normalized.Replace(marker, " ", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return string.Join(" ", normalized.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
     private static bool ContainsAny(string? adapterName, string[] substrings)
