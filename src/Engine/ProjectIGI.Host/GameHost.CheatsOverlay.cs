@@ -158,6 +158,20 @@ public sealed partial class GameHost
             return;
         }
 
+        // Row 4: Benchmark -- an action, not a toggle: it closes the modal and starts the
+        // run over the menu level. Inert while a run is already going.
+        float r4Y = contentY + (rowHeight * 4f);
+        if (clickX >= btnX && clickX <= btnX + btnW && clickY >= r4Y && clickY <= r4Y + btnH)
+        {
+            if (!BenchmarkRunning)
+            {
+                _cheatsModalOpen = false;
+                StartBenchmark(state, manual: true);
+            }
+
+            return;
+        }
+
         // Close button at bottom
         float closeW = 220f * scale;
         float closeH = 42f * scale;
@@ -323,6 +337,7 @@ public sealed partial class GameHost
             DrawCheatRow(1, "INFINITE AMMUNITION", "Magazines stay filled, reserves never deplete while firing", PlayerCheatCVars.InfiniteAmmo.Value);
             DrawCheatRow(2, "ALL WEAPONS", "Adds all weapons into inventory for the mission", PlayerCheatCVars.AllWeapons.Value);
             DrawCheatRow(3, "UNLOCK ALL MISSIONS", $"All {_missions.InProgressionOrder().Count()} missions are selectable in Campaign", PlayerCheatCVars.UnlockAllLevels.Value);
+            DrawCheatRow(4, "BENCHMARK", "Measure High, Medium and Low; keep the best that holds 30 FPS", BenchmarkRunning, "RUNNING", "RUN");
 
             // Close button
             float closeW = 220f * scale;

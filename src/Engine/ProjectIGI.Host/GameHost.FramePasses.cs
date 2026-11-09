@@ -104,6 +104,7 @@ public sealed partial class GameHost
         _window.PumpEvents();
         ApplyTouchControls(state);
         UpdateCheatsOverlay(state);
+        UpdateBenchmarkInput();
 
         // Whatever the detail-map workers finished since the last pass, uploaded a few at a time.
         // The setting is read here rather than captured at construction so that turning
@@ -529,6 +530,11 @@ public sealed partial class GameHost
             state.FramePerformance.NoteFrame();
         }
 
+        // The first-run / cheats-menu benchmark: one call per rendered frame, so its phases
+        // advance on the same clock its measurements are taken from. The menu level it
+        // measures is drawn below, in this same pass.
+        UpdateBenchmark(state);
+
         // Dynamic resolution: once per presented frame, in a mission only, feed the frame's wall
         // time to the ladder. Menus, the pause menu and the warm-up are not the game running, and
         // their frame times say nothing about what the mission costs; a benchmark is a measurement,
@@ -672,6 +678,9 @@ public sealed partial class GameHost
 
         // ── Main Menu Cheats Button & Overlay ─────────────────────────────
         DrawCheatsOverlay(state);
+
+        // -- Benchmark Progress Bar -------------------------------------------------
+        DrawBenchmarkOverlay(state);
     }
 
     /// <summary>Draws a small FPS counter overlay at the top right corner of the screen.</summary>

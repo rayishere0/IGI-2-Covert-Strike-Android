@@ -643,6 +643,12 @@ public sealed partial class GameHost : IDisposable
                     + $"r_dynamic_target_fps={ReconstructionCVars.DynamicTargetFps.Value}.");
         }
 
+        // The first-run benchmark: the same gate as the tier above -- no settings file was
+        // loaded, and the run has never finished or been skipped -- so an existing install
+        // never sees it. It only arms here; the run itself starts on the first menu frame,
+        // once the showcase level it measures is up (see GameHost.Benchmark).
+        ArmFirstRunBenchmark(state.Console.SettingsLoaded);
+
         CreateClocksAndLighting(state);
 
         // The audio device, collected here: this is the first line that reads it, and everything between
