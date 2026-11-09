@@ -53,6 +53,12 @@ public interface IIgi2PlayerWeaponControl : IIgi2HumanWeapon
     /// <summary>Gets a value indicating whether the held weapon type's task is a <c>Zoom</c>.</summary>
     bool ActiveIsZoom { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether the weapon in hand carries a thermo-chemical imaging sight: one of its fire types
+    /// is a <c>ThermoSight</c>, or it is the Barrett Thermo, which retail gives the sight without marking it in its data.
+    /// </summary>
+    bool ActiveHasThermoSight => false;
+
     /// <summary>Gets a value indicating whether the held weapon is a gun firing missiles, which cannot be fired lying down.</summary>
     /// <remarks><c>HumanPlayer_Update</c> (<c>igi2 0x4A20C0</c>): the active slot's task is a <c>Gun</c> whose ammo is a <c>Missile</c>.</remarks>
     bool ActiveIsMissileLauncher { get; }

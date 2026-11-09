@@ -83,7 +83,12 @@ public sealed partial class Igi2HumanPlayer
         MaintainRunningSound();
         MaintainFatigue();
 
-        IsInfraEnabled = Weapon.Inventory?.Current?.WeaponType.WeaponType == Weapons.Igi2WeaponTypeKind.Special;
+        // Infrared stays on while the thermal goggles are in hand, and while a thermo-sight rifle's scope is up: the
+        // Barrett Thermo's glass shows only body heat when looked through, and lowering the scope -- or putting the rifle
+        // away -- takes the overlay down and the sight's flag with it, so this goes false again. Merely carrying the
+        // rifle is not infrared: with it the sector cull would stop hiding soldiers in rooms the player has not reached.
+        IsInfraEnabled = Weapon.Inventory?.Current?.WeaponType.WeaponType == Weapons.Igi2WeaponTypeKind.Special
+            || IsThermoSightScoped;
 
         UpdateVisibilityFactor();
 

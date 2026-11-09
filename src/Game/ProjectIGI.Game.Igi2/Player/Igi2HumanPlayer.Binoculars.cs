@@ -18,9 +18,19 @@ public sealed partial class Igi2HumanPlayer
     /// <summary>
     /// Gets or sets a value indicating whether the view sees in infrared, <c>isInfraEnabled</c>: the goggles' key turns it
     /// on, and each tick's end sets it from whether the weapon in hand is a special one (<c>HumanPlayer_RunDelayedHandler</c>,
-    /// <c>igi2 0x4B8C72</c>).
+    /// <c>igi2 0x4B8C72</c>), or from a thermo-sight rifle with its scope up (<see cref="IsThermoSightScoped"/>).
     /// </summary>
     public bool IsInfraEnabled { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the weapon in hand is a thermo-sight rifle with its scope up: the sight is on and
+    /// the overlay is showing, so the view looks through the thermo-chemical glass. The flag the sight's own fire type
+    /// sets counts too, for a weapon whose data fires <c>ThermoSight</c>. Lowering the scope, or putting the rifle away,
+    /// takes the overlay down and the flag with it, so this goes false again.
+    /// </summary>
+    public bool IsThermoSightScoped =>
+        Weapon.Firing is { OverlayStatus: Igi2WeaponOverlayStatus.WithOverlay } firing
+        && (Weapon.ActiveHasThermoSight || firing.IsThermoSightOn);
 
     /// <summary>
     /// Raises or lowers the binoculars or the goggles on their key, <c>HumanPlayer_CheckBinoculars</c> (<c>igi2 0x4B3950</c>)

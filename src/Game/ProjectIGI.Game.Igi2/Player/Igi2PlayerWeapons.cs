@@ -94,6 +94,16 @@ public sealed class Igi2PlayerWeapons : IIgi2PlayerWeaponControl
 
     /// <inheritdoc/>
     /// <remarks>
+    /// The weapon's own data first: a <c>ThermoSight</c> fire type in either slot. The Barrett Thermo second, by id:
+    /// retail gives it the sight without marking it in its weapon data, as a scope is not marked either
+    /// (<see cref="Game.Weapons.ThermoSightWeapons"/>).
+    /// </remarks>
+    public bool ActiveHasThermoSight =>
+        Held is { } held && (Game.Weapons.ThermoSightWeapons.IsThermoSight(held.WeaponId)
+            || held.FireType(0) is Igi2ThermoSightTask || held.FireType(1) is Igi2ThermoSightTask);
+
+    /// <inheritdoc/>
+    /// <remarks>
     /// <c>HumanPlayer_Update</c> (<c>igi2 0x4A20C0</c>): the primary fire type is declared a <c>Gun</c> and the gun's
     /// <c>Projectile TaskType</c> is a <c>Missile</c>.
     /// </remarks>

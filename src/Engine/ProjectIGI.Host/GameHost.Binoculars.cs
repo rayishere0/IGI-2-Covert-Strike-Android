@@ -29,6 +29,9 @@ public sealed partial class GameHost
     /// <summary>Gets a value indicating whether the title's player is looking through its binoculars.</summary>
     private bool TitleBinocularsOpen => _playerMode && TitleOptics?.IsBinocularsOpen == true;
 
+    /// <summary>Gets a value indicating whether the title's player is looking through a thermo-sight rifle's scope.</summary>
+    private bool TitleThermalScopeOpen => _playerMode && TitleOptics?.IsThermalScopeOpen == true;
+
     /// <summary>Gets a value indicating whether any player is looking through binoculars.</summary>
     private bool BinocularsOpen => Viewpoint?.IsBinocularsOpen == true || TitleBinocularsOpen;
 
@@ -57,7 +60,9 @@ public sealed partial class GameHost
     /// <param name="eye">The camera the frame is drawn from.</param>
     private void DrawTitleBinocularMarks(in Camera3D eye)
     {
-        if (!TitleBinocularsOpen || TitleOptics is not { } optics
+        // The marks are drawn for the binoculars, and for a thermo-sight rifle's scope: the scope's glass picks people
+        // out the same way, and while its infrared is on they glow yellow through cover as the goggles' do.
+        if ((!TitleBinocularsOpen && !TitleThermalScopeOpen) || TitleOptics is not { } optics
             || _titleFeatures?.WorldModels is not { } owned || TitleWorldModelPresenter is not { } models)
         {
             return;

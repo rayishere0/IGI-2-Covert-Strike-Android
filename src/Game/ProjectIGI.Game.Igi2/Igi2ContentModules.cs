@@ -175,6 +175,7 @@ public sealed class Igi2WeaponContentModule : IContentModule
         context.Types.Register<Weapons.Igi2PullPinTask>(Weapons.Igi2PullPinTask.TypeName);
         context.Types.Register<Weapons.Igi2FireModeTask>(Weapons.Igi2FireModeTask.TypeName);
         context.Types.Register<Weapons.Igi2LaserDotSwitchTask>(Weapons.Igi2LaserDotSwitchTask.TypeName);
+        context.Types.Register<Weapons.Igi2ThermoSightTask>(Weapons.Igi2ThermoSightTask.TypeName);
         Weapons.Igi2WeaponConstants.Register(context.Natives, context.Types);
         Weapons.Igi2WeaponTables tables = context.Services.GetOrProvide(() => new Weapons.Igi2WeaponTables(context.Logger));
         Scripting.Igi2ScriptFunctions functions = context.Services.GetOrProvide(() => new Scripting.Igi2ScriptFunctions());

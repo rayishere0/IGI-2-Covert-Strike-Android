@@ -23,6 +23,9 @@ public sealed partial class Igi2TitlePlayer : ITitlePlayerOptics
     public bool IsBinocularsOpen => !IsCutscenePlaying && !Human.IsDead && ZoomOverlay == BinocularOverlayType;
 
     /// <inheritdoc/>
+    public bool IsThermalScopeOpen => !IsCutscenePlaying && !Human.IsDead && Human.IsThermoSightScoped;
+
+    /// <inheritdoc/>
     public bool IsInfrared => Human.IsInfraEnabled;
 
     /// <inheritdoc/>
@@ -61,7 +64,9 @@ public sealed partial class Igi2TitlePlayer : ITitlePlayerOptics
 
             _contactsTick = _ticks;
             _contacts.Clear();
-            if (!IsBinocularsOpen)
+            // The binoculars pick people out, and so does a thermo-sight rifle's scope: the glow the host draws over
+            // them is the same marks, read through the scope's glass while its infrared is on.
+            if (!IsBinocularsOpen && !IsThermalScopeOpen)
             {
                 return _contacts;
             }

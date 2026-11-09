@@ -560,10 +560,11 @@ public sealed partial class GameHost
         // scene and is carried into the resolve, so the lens and bloom pick it up. Only while the
         // remastered optics are up — or while the title player's thermal goggles are up, which
         // is the retail TID: living targets glow through cover on the retail HUD too, and
-        // Android runs Vanilla, where the remastered optics never are.
+        // Android runs Vanilla, where the remastered optics never are — or while the title
+        // player's thermo-sight rifle's scope is up, whose glass shows the same body heat.
         bool titleInfrared = TitleOptics is { IsInfrared: true };
         if ((remasteredOptics && HudCVars.BinocularOutline.Value || titleInfrared)
-            && BinocularsOpen)
+            && (BinocularsOpen || TitleThermalScopeOpen))
         {
             // Whom a title's own player's binoculars picked out, highlighted by what draws them.
             DrawTitleBinocularMarks(eye);
