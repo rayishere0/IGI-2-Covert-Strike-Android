@@ -17,6 +17,7 @@ public sealed partial class Igi2HumanPlayer
     private void EnterReload()
     {
         FireType = 0;
+        View.DisableZoomMode();
         SetUpperBody(8);
         Action.Current = (_, _) => RunReload();
     }

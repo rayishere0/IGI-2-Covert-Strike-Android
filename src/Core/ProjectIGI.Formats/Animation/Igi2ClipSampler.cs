@@ -86,6 +86,44 @@ public static class Igi2ClipSampler
         return Slerp(rotation, tangent, 2.0 * t * (1.0 - t));
     }
 
+    /// <summary>Samples one attach object's own key track.</summary>
+    /// <param name="track">The attach object's key track.</param>
+    /// <param name="time">The controller time, in the clip's units.</param>
+    /// <param name="translation">Receives the object's position relative to its bone.</param>
+    /// <param name="rotation">Receives the object's orientation relative to its bone.</param>
+    /// <returns>Whether the track has a key at or before the time.</returns>
+    /// <remarks>
+    /// The translation is linear between keys, as a root translation is; the rotation is a plain slerp, as a bone
+    /// rotation is when the spline bit is clear — an attach key carries no tangents. A key with no next holds. A track
+    /// sampled before its first key reads nothing, as the other tracks do.
+    /// </remarks>
+    public static bool SampleAttach(IReadOnlyList<Igi2AttachKey> track, int time, out Vector3f translation, out Quaternion32 rotation)
+    {
+        ArgumentNullException.ThrowIfNull(track);
+        translation = default;
+        rotation = new Quaternion32(0f, 0f, 0f, 1f);
+        if (!TryFindSegment(track, time, static k => k.Time, out int index, out double t))
+        {
+            return false;
+        }
+
+        Igi2AttachKey from = track[index];
+        translation = from.Translation;
+        rotation = from.Rotation;
+        if (index + 1 >= track.Count)
+        {
+            return true;
+        }
+
+        Igi2AttachKey to = track[index + 1];
+        translation = new Vector3f(
+            (float)(((to.Translation.X - from.Translation.X) * t) + from.Translation.X),
+            (float)(((to.Translation.Y - from.Translation.Y) * t) + from.Translation.Y),
+            (float)(((to.Translation.Z - from.Translation.Z) * t) + from.Translation.Z));
+        rotation = Slerp(from.Rotation, to.Rotation, t);
+        return true;
+    }
+
     /// <summary>Samples every bone of a clip.</summary>
     /// <param name="clip">The clip.</param>
     /// <param name="time">The controller time, in the clip's units.</param>
