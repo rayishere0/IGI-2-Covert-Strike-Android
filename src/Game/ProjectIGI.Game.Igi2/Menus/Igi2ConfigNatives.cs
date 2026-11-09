@@ -252,6 +252,44 @@ public sealed class Igi2ConfigNatives : IMenuConfiguration, IMenuMissionStats
                 result = QvmValue.FromInt32(_config.ActiveIndex);
                 return true;
 
+            case "Config_FillDifficultyLevelListBox":
+                // Screen 912's difficulty spinner (ListBox 995): its Collect Items script
+                // calls this, and the native never existed anywhere — an unknown native
+                // evaluates to zero, so the spinner filled with nothing and drew its box
+                // and arrows with no label between them. Retail's own names for the three
+                // levels are the ones its add-player popup (DialogWindow 933) offers:
+                // Easy, Medium, Hard, worth 0, 1 and 2 (GD_1, GD_2, GD_3).
+                Fill([
+                    new MenuListItem(0, "Easy", true),
+                    new MenuListItem(1, "Medium", true),
+                    new MenuListItem(2, "Hard", true),
+                ]);
+                return true;
+
+            case "Config_GetActiveDifficultyLevel":
+                result = QvmValue.FromInt32(_config.Active?.Difficulty ?? 0);
+                return true;
+
+            case "Config_SetActiveDifficultyLevel":
+                int difficulty = Math.Clamp(arguments.GetInt32(0), 0, 2);
+                if (_config.Active is { } difficultyProfile)
+                {
+                    difficultyProfile.Difficulty = difficulty;
+                }
+
+                // The game never reads this profile's difficulty when a mission starts: it
+                // reads the shared profile's (GameHost.EffectiveDifficulty), and the level
+                // build then copies that back over this profile. Writing only here would
+                // leave the choice discarded the moment a mission loads, so the shared
+                // profile — the one the game plays at, and the one saved on exit — takes
+                // the same value.
+                if (_shared?.Active is { } sharedProfile)
+                {
+                    sharedProfile.Difficulty = difficulty;
+                }
+
+                return true;
+
             case "MenuStatsScreen_SetActiveMissionID":
                 // The id back, not zero: screen 914's Get Data is
                 // Config_PlayerGetActiveMission(...), MenuStatsScreen_SetActiveMissionID(this.nActiveID),
