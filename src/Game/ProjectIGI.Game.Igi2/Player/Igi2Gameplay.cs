@@ -54,6 +54,9 @@ public sealed class Igi2Gameplay : ITitleGameplay
         new((ulong)Igi2PlayerAction.ToggleWalkRun, new("Title_igi2_ToggleWalkRunAlt", Game.Config.InputBindingKeyNames.KeyboardDevice, "KEY_END"), "Toggle walk/run (alternate)"),
         new((ulong)Igi2PlayerAction.DropWeapon, new("Title_igi2_DropWeapon", Game.Config.InputBindingKeyNames.KeyboardDevice, "KEY_G"), "Drop weapon"),
         new((ulong)Igi2PlayerAction.Thermal, new("Title_igi2_Thermal", Game.Config.InputBindingKeyNames.KeyboardDevice, "KEY_T"), "Thermal sight"),
+        // The computer's objectives screen. Retail's key is O, but this port already binds O to the previous weapon (both its own
+        // defaults and the retail defaults read from the binary), so the port's own default is U, which binds nothing.
+        new((ulong)Igi2PlayerAction.ComputerObjectives, new("Title_igi2_ComputerObjectives", Game.Config.InputBindingKeyNames.KeyboardDevice, "KEY_U"), "Computer objectives"),
         new((ulong)Igi2PlayerAction.ModifyWalkRun, new("Title_igi2_ModifyWalkRun", Game.Config.InputBindingKeyNames.KeyboardDevice, "KEY_LEFT_ALT"), "Hold to walk"),
     ];
 

@@ -100,6 +100,9 @@ public enum TouchElementId
     /// <summary>Tactical map computer button.</summary>
     Map,
 
+    /// <summary>Map computer objectives button.</summary>
+    Objectives,
+
     /// <summary>Binoculars button.</summary>
     Binoculars,
 
@@ -166,6 +169,9 @@ public enum TouchButton
 
     /// <summary>The map computer.</summary>
     Map,
+
+    /// <summary>The map computer's objectives screen (I.G.I. 2): show the mission objectives while the computer is open.</summary>
+    Objectives,
 
     /// <summary>The binoculars.</summary>
     Binoculars,
@@ -875,16 +881,19 @@ public sealed class TouchControls
         }
 
         // While the computer is open, only its own controls show: the navigation
-        // stick and zoom at the top centre, with Pause and the Map button at the
-        // top-right corner. Every other button is hidden, because the layout in
-        // Computer mode is this list alone. Map is the computer's own toggle, so
-        // it closes the computer; Pause opens the pause menu. Other titles keep
-        // their Close button, which does the same job as Map.
+        // stick and zoom at the top centre, with Pause, the Map button and the
+        // Objectives button at the top-right corner. Every other button is hidden,
+        // because the layout in Computer mode is this list alone. Map is the
+        // computer's own toggle, so it closes the computer; Pause opens the pause
+        // menu. Objectives turns to the computer's objectives screen (a second tap
+        // closes it, as the retail computer key does). Other titles keep their
+        // Close button, which does the same job as Map.
         _computerLayout.Clear();
         if (ShowIgi2Buttons)
         {
             _computerLayout.Add(new TouchButtonSpot(TouchButton.Pause, new UiVec2(safe.Right - Px(80f), safe.Y + Px(80f)), Px(CornerRadius), ElementId: TouchElementId.Pause));
             _computerLayout.Add(new TouchButtonSpot(TouchButton.Map, new UiVec2(safe.Right - Px(80f) - Px(CornerRadius * 2.6f), safe.Y + Px(80f)), Px(CornerRadius), ElementId: TouchElementId.Map));
+            _computerLayout.Add(new TouchButtonSpot(TouchButton.Objectives, new UiVec2(safe.Right - Px(80f) - Px(CornerRadius * 5.2f), safe.Y + Px(80f)), Px(CornerRadius), ElementId: TouchElementId.Objectives));
         }
         else
         {
