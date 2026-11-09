@@ -84,6 +84,7 @@ public sealed partial class GameHost
         TouchButton.Peek => "Peek",
         TouchButton.Map => "MapComputer",
         TouchButton.Binoculars => "Binoculars",
+        TouchButton.NightVision => "Binoculars",
         TouchButton.ZoomIn => "ZoomIn",
         TouchButton.ZoomOut => "ZoomOut",
         TouchButton.Close => "MapComputer",
@@ -312,6 +313,17 @@ public sealed partial class GameHost
 
             foreach (TouchButton button in _touchControls.Held)
             {
+                // The night-vision button raises the same binoculars as the B key, but
+                // green: the host remembers the tint was asked for, and the optics'
+                // renderer washes the plain binoculars' view while it is up. Set while
+                // held rather than on the press edge, so a tap that lands before the
+                // binoculars come up still tints them; the flag is cleared where the
+                // optics are resolved, once they are down or the thermal goggles are up.
+                if (button == TouchButton.NightVision && TitleOptics is { } nightVisionOptics)
+                {
+                    nightVisionOptics.IsNightVision = true;
+                }
+
                 if (button == TouchButton.Pause)
                 {
                     if (!_menuFlow.PauseMenu

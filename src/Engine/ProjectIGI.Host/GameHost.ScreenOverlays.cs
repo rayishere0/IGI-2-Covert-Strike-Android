@@ -5,6 +5,7 @@ using ProjectIGI.Game.Player;
 using ProjectIGI.Game.World;
 using ProjectIGI.Presentation;
 using ProjectIGI.Presentation.Hud;
+using ProjectIGI.Presentation.Hud.Remastered.Touch;
 using ProjectIGI.Presentation.Rendering;
 using ProjectIGI.Rendering;
 using ProjectIGI.UI;
@@ -107,6 +108,19 @@ public sealed partial class GameHost
                     binocularDetectionRange,
                     _loop.Clock.TickCount)
                 : [];
+
+        // Night vision is the touch button's alone and lives only while the plain
+        // binoculars are up: the thermal goggles coming up, or the optics coming
+        // down, take it with them. The hold on the button is the exception, so a
+        // tap that lands before the binoculars come up is not cleared in the same
+        // frame it was set; the game clears it too, where the optics are lowered
+        // or the thermal goggles raised.
+        if (TitleOptics is { } nightVisionOptics
+            && (!TitleBinocularsOpen || nightVisionOptics.IsInfrared)
+            && !_touchControls.Held.Contains(TouchButton.NightVision))
+        {
+            nightVisionOptics.IsNightVision = false;
+        }
 
         view.RemasterHud = remasterHud;
         view.RemasteredOptics = remasteredOptics;

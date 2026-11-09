@@ -29,6 +29,13 @@ public sealed partial class Igi2TitlePlayer : ITitlePlayerOptics
     public bool IsInfrared => Human.IsInfraEnabled;
 
     /// <inheritdoc/>
+    public bool IsNightVision
+    {
+        get => Human.IsNightVisionEnabled;
+        set => Human.IsNightVisionEnabled = value;
+    }
+
+    /// <inheritdoc/>
     /// <remarks>The bearing of the view's forward across the ground, as the retail compass reads it (<c>BinocularOverlay_DrawCompass</c>).</remarks>
     public float BinocularHeadingRadians
     {

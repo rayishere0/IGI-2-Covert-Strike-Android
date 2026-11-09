@@ -23,6 +23,14 @@ public sealed partial class Igi2HumanPlayer
     public bool IsInfraEnabled { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the binoculars are up as the touch night-vision goggles: the green
+    /// wash the host draws over the plain binoculars' view. Set by the host's Night Vision button when it raises the
+    /// binoculars; cleared here when the optics come down or the thermal goggles go up. Not a retail feature — retail
+    /// IGI 2 has no night-vision goggles, only the thermal imaging device.
+    /// </summary>
+    public bool IsNightVisionEnabled { get; set; }
+
+    /// <summary>
     /// Gets a value indicating whether the weapon in hand is a thermo-sight rifle with its scope up: the sight is on and
     /// the overlay is showing, so the view looks through the thermo-chemical glass. The flag the sight's own fire type
     /// sets counts too, for a weapon whose data fires <c>ThermoSight</c>. Lowering the scope, or putting the rifle away,
@@ -87,6 +95,7 @@ public sealed partial class Igi2HumanPlayer
             }
 
             PreviousWeaponType = null;
+            IsNightVisionEnabled = false;
             Weapon.ClearOverlay();
             SetWeaponPrecision();
             return;
@@ -95,6 +104,7 @@ public sealed partial class Igi2HumanPlayer
         if (!binocularsKey)
         {
             IsInfraEnabled = true;
+            IsNightVisionEnabled = false;
             ActivateWeapon(thermalItem);
         }
         else

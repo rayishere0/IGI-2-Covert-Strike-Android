@@ -21,6 +21,9 @@ public interface ITitlePlayerOptics
     /// <summary>Gets a value indicating whether the player's view sees in infrared — the thermal goggles are up, or a thermo-sight rifle's scope is.</summary>
     bool IsInfrared { get; }
 
+    /// <summary>Gets or sets whether the binoculars are up as the touch night-vision goggles: the green tint over the plain binoculars' view. Set by the host's Night Vision button, cleared when the optics come down or the thermal goggles go up. Not a retail feature.</summary>
+    bool IsNightVision { get; set; }
+
     /// <summary>Gets where the player is looking, for the compass, in radians.</summary>
     float BinocularHeadingRadians { get; }
 

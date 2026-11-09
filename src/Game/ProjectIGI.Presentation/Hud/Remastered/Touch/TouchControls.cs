@@ -102,6 +102,9 @@ public enum TouchElementId
 
     /// <summary>Binoculars button.</summary>
     Binoculars,
+
+    /// <summary>Night-vision goggles button (I.G.I. 2).</summary>
+    NightVision,
 }
 
 /// <summary>A button on the screen in play, and the player's action it holds.</summary>
@@ -166,6 +169,9 @@ public enum TouchButton
 
     /// <summary>The binoculars.</summary>
     Binoculars,
+
+    /// <summary>Raise the binoculars as the green night-vision goggles (I.G.I. 2): the same B key as the binoculars, its own button.</summary>
+    NightVision,
 
     /// <summary>Zoom in, through the binoculars or a sight.</summary>
     ZoomIn,
@@ -861,6 +867,13 @@ public sealed class TouchControls
             _layout.Add(new TouchButtonSpot(TouchButton.Thermal, ResolvePos(TouchElementId.Thermal, new UiVec2(safe.Right - Px(470f), safe.Bottom - Px(540f))), Px(SmallRadius) * Scale(TouchElementId.Thermal), ElementId: TouchElementId.Thermal));
         }
 
+        // Night vision, above the thermal sight in the same optics column (I.G.I. 2 only):
+        // the same binoculars as the B key, seen through a green wash.
+        if (ShowIgi2Buttons)
+        {
+            _layout.Add(new TouchButtonSpot(TouchButton.NightVision, ResolvePos(TouchElementId.NightVision, new UiVec2(safe.Right - Px(470f), safe.Bottom - Px(680f))), Px(SmallRadius) * Scale(TouchElementId.NightVision), ElementId: TouchElementId.NightVision));
+        }
+
         // While the computer is open, only its own controls show: the navigation
         // stick and zoom at the top centre, with Pause and the Map button at the
         // top-right corner. Every other button is hidden, because the layout in
@@ -886,10 +899,9 @@ public sealed class TouchControls
         _computerLayout.Add(new TouchButtonSpot(TouchButton.ZoomOut, new UiVec2(ComputerStickRest.X - Px(300f), ComputerStickRest.Y), Px(CornerRadius), ElementId: TouchElementId.ZoomOut));
         _computerLayout.Add(new TouchButtonSpot(TouchButton.ZoomIn, new UiVec2(ComputerStickRest.X + Px(300f), ComputerStickRest.Y), Px(CornerRadius), ElementId: TouchElementId.ZoomIn));
 
-        // Corner utility. I.G.I. 2 has no night-vision goggles, only the thermal
-        // imaging device, so its corner carries no binoculars button: the thermal
-        // sight above the scope button is the only optics on touch. Project I.G.I.
-        // keeps its binoculars button.
+        // Corner utility. The optics live in their own column above the scope button,
+        // not here: the thermal sight and, above it, the night-vision goggles. Project
+        // I.G.I. keeps its binoculars button in the corner.
         float y = safe.Y + Px(80f);
         TouchElementId[] cornerIds = ShowIgi2Buttons
             ? [TouchElementId.Pause, TouchElementId.Map, TouchElementId.WalkRun]
