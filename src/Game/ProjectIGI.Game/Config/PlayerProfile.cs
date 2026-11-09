@@ -152,6 +152,9 @@ public sealed class PlayerProfile
     /// <summary>How fast the view turns per radian of phone tilt (gyroscope aim). 0 to 1, like mouse sensitivity.</summary>
     public float GyroSensitivity { get; set; } = 0.5f;
 
+    /// <summary>Whether gyroscope aim is inverted: tilting the phone turns the view the opposite way, on both axes (yaw and pitch). Off by default.</summary>
+    public bool InvertGyro { get; set; }
+
     /// <summary>Whether blood is drawn.</summary>
     /// <remarks><c>GOIsBlood</c>. The German build forces this off; see <see cref="GameConfig.IsGermany"/>.</remarks>
     public bool BloodEnabled { get; set; } = true;
@@ -442,6 +445,7 @@ public sealed class PlayerProfile
             MouseSensitivity = MouseSensitivity,
             GyroEnabled = GyroEnabled,
             GyroSensitivity = GyroSensitivity,
+            InvertGyro = InvertGyro,
             BloodEnabled = BloodEnabled,
             DisplayMode = DisplayMode,
             DeviceGuid = DeviceGuid,

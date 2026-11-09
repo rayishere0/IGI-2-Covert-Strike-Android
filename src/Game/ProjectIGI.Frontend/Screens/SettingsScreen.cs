@@ -41,6 +41,7 @@ public sealed class SettingsScreen : ShellScreen
     private readonly bool _initialInvert;
     private readonly bool _initialGyro;
     private readonly float _initialGyroSensitivity;
+    private readonly bool _initialInvertGyro;
     private readonly float _initialUiScale;
     private readonly float _initialTextScale;
     private readonly int _initialRenderScale;
@@ -77,6 +78,7 @@ public sealed class SettingsScreen : ShellScreen
         _initialInvert = context.Config.Active?.InvertMouse ?? false;
         _initialGyro = context.Config.Active?.GyroEnabled ?? false;
         _initialGyroSensitivity = context.Config.Active?.GyroSensitivity ?? 0.5f;
+        _initialInvertGyro = context.Config.Active?.InvertGyro ?? false;
         _initialUiScale = DisplayCVars.UiScale.Value;
         _initialTextScale = DisplayCVars.TextScale.Value;
         _initialRenderScale = context.Host.RenderScaleMode;
@@ -651,6 +653,23 @@ public sealed class SettingsScreen : ShellScreen
         };
         configStack.AddChild(gyroSensSlider);
 
+        // ── Invert gyroscope ───────────────────────────────────────────────
+        bool invertGyroState = Context.Config.Active?.InvertGyro ?? false;
+        var invertGyroToggle = new Toggle(theme, "Invert gyroscope", invertGyroState)
+        {
+            Width = 1150f,
+            Height = 68f,
+            Tooltip = "Tilt the phone and the view turns the opposite way, left/right and forward/back.",
+        };
+        invertGyroToggle.ValueChanged += val =>
+        {
+            if (Context.Config.Active is { } profile)
+            {
+                profile.InvertGyro = val;
+            }
+        };
+        configStack.AddChild(invertGyroToggle);
+
 
         frame.AddChild(_scroll);
 
@@ -721,6 +740,7 @@ public sealed class SettingsScreen : ShellScreen
                 profile.InvertMouse = _initialInvert;
                 profile.GyroEnabled = _initialGyro;
                 profile.GyroSensitivity = _initialGyroSensitivity;
+                profile.InvertGyro = _initialInvertGyro;
             }
             CloseConfig();
         };
