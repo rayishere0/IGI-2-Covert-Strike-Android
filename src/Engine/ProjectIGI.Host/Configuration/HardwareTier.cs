@@ -194,6 +194,48 @@ public static class HardwareTiering
         }
     }
 
+    /// <summary>Applies a tier's values unconditionally, for the benchmark's measurement passes.</summary>
+    /// <param name="tier">The tier to measure.</param>
+    /// <param name="window">The window, for its height and its render-scale tier.</param>
+    /// <remarks>
+    /// Unlike <see cref="Apply"/>, this ignores the <c>IsDefault</c> guards: a re-run from the cheats
+    /// menu measures tiers over settings the player already has, where every CVar is non-default and
+    /// <see cref="Apply"/> would change nothing. Dynamic resolution is forced off while measuring --
+    /// the ladder would otherwise move the scale under the measurement and every tier would read the
+    /// same held frame rate -- and the frame limit is the tier's own, which is uncapped on every tier.
+    /// </remarks>
+    public static void ApplyForMeasurement(HardwareTier tier, IGameWindow window) =>
+        ApplyValues(tier, window, dynamicResolution: false);
+
+    /// <summary>Applies a tier's values unconditionally, with the tier's own dynamic-resolution setting.</summary>
+    /// <param name="tier">The tier the benchmark picked.</param>
+    /// <param name="window">The window, for its height and its render-scale tier.</param>
+    /// <remarks>
+    /// The benchmark's finish step: the winning tier as the player will actually play it, dynamic
+    /// resolution included (on for Low and Medium, off for High). Like
+    /// <see cref="ApplyForMeasurement"/>, this ignores the <c>IsDefault</c> guards -- the choice is
+    /// the benchmark's to make, not the defaults' to keep.
+    /// </remarks>
+    public static void ApplyChoice(HardwareTier tier, IGameWindow window) =>
+        ApplyValues(tier, window, dynamicResolution: Table[tier].DynamicResolution);
+
+    private static void ApplyValues(HardwareTier tier, IGameWindow window, bool dynamicResolution)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        TierValues values = Table[tier];
+        float height = window.Height > 0 ? window.Height : 1080f;
+        float scale = Math.Clamp(values.RenderScaleHeight / height, 0.25f, 1f);
+
+        window.RenderScaleMode = values.RenderScaleMode;
+        ReconstructionCVars.RenderScale.Value = scale;
+        ReconstructionCVars.FrameLimit.Value = values.FrameLimit;
+        ReconstructionCVars.DynamicResolution.Value = dynamicResolution;
+        ReconstructionCVars.DynamicTargetFps.Value = values.DynamicTargetFps;
+        ReconstructionCVars.ViewDistance.Value = values.ViewDistance;
+        MaterialCVars.TextureQuality.Value = values.TextureQuality;
+    }
+
     private static bool ContainsAny(string? adapterName, string[] substrings)
     {
         if (string.IsNullOrWhiteSpace(adapterName))
