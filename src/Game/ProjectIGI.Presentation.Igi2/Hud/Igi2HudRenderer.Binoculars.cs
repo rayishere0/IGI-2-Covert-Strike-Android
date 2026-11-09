@@ -69,6 +69,15 @@ public sealed partial class Igi2HudRenderer
         // OverlayHolder is the other way a view is made infrared. Before, only the
         // scripts' flag was read, so the thermal goggles showed this plain frame.
         bool infrared = title.Human.IsInfraEnabled || title.ScreenOverlay?.IsInfrared == true;
+        // Night vision is the touch button's alone, never the scripts': the plain
+        // binoculars' view through a green wash. The wash goes under the frame, so
+        // the frame's black surround hides it outside the lenses and it shows only
+        // through the glass; the thermal frame never gets it.
+        if (!infrared && title.Human.IsNightVisionEnabled)
+        {
+            DrawNightVisionTint(batch, width, height);
+        }
+
         DrawBinocularFrame(batch, infrared ? InfraredSprite : BinocularSprite, width, height);
         if (infrared)
         {
@@ -79,6 +88,18 @@ public sealed partial class Igi2HudRenderer
         DrawCompass(batch, title, width, height);
         DrawMarks(batch, title, width, height);
     }
+
+    // The night-vision wash: a flat green over the view, strong enough to read as
+    // goggles at a glance without hiding what is in the lenses. One place to tune.
+    private static readonly Bgra32 NightVisionTint = Bgra32.FromRgba(0, 255, 0, 110);
+
+    /// <summary>The night-vision wash: a flat green quad over the whole view, drawn under the binoculars' frame.</summary>
+    private void DrawNightVisionTint(SpriteBatch batch, float width, float height) =>
+        batch.DrawQuad(TextureHandle.None,
+            new Vertex2D(0f, 0f, 0f, 0f, NightVisionTint),
+            new Vertex2D(width * _scale, 0f, 0f, 0f, NightVisionTint),
+            new Vertex2D(width * _scale, height * _scale, 0f, 0f, NightVisionTint),
+            new Vertex2D(0f, height * _scale, 0f, 0f, NightVisionTint));
 
     /// <summary>The frame: its sprite stretched over the left half and mirrored over the right, a sprite pixel past each edge.</summary>
     private void DrawBinocularFrame(SpriteBatch batch, string name, float width, float height)
