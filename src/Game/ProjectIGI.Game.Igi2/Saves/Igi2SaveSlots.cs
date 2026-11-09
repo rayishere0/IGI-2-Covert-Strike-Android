@@ -89,13 +89,13 @@ public sealed class Igi2SaveSlots(string directory)
     public static string CarryOverFileName(Igi2SaveOwner owner) =>
         string.Create(CultureInfo.InvariantCulture, $"savegames/missions/co{owner.Profile:00}{owner.Difficulty:00}{owner.Mission:00}.qsc");
 
-    /// <summary>The slots a difficulty allows, <c>Game_GetAvailableSaveGameSlots</c>: three on easy, two on normal, none on hard.</summary>
+    /// <summary>The slots a difficulty allows, <c>Game_GetAvailableSaveGameSlots</c>: five on easy, three on normal, none on hard -- the battery's own count (<see cref="Igi2MissionSaves.SavesAllowed"/>), which the old three/two here used to undercut.</summary>
     /// <param name="difficulty">The difficulty.</param>
     /// <returns>The slots.</returns>
     public static int AvailableSlots(int difficulty) => difficulty switch
     {
-        0 => 3,
-        1 => 2,
+        0 => 5,
+        1 => 3,
         _ => 0,
     };
 
