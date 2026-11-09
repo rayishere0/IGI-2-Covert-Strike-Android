@@ -21,6 +21,14 @@ public interface IIgi2SoldierMind
     /// <param name="soldier">The body.</param>
     void Run(Igi2HumanSoldier soldier);
 
+    /// <summary>
+    /// Runs the mind one tick while a cutscene plays: its script and its action stack still run and the body still gets its
+    /// update, so a cutscene's own actors move on the orders they already have; its spotting half stays held, so nothing new is
+    /// seen or fought while the scene plays. By default this is <see cref="Run"/>: a mind with no spotting half has nothing to hold.
+    /// </summary>
+    /// <param name="soldier">The body.</param>
+    void RunCutscene(Igi2HumanSoldier soldier) => Run(soldier);
+
     /// <summary>Gets a value indicating whether hits do the soldier no harm, <c>HumanAI+0x1165</c>.</summary>
     bool IsInvulnerable => false;
 
@@ -318,12 +326,21 @@ public sealed partial class Igi2HumanSoldier : Igi2Human
         Animation.AutoStep();
         TouchPose();
 
-        // A cutscene holds the mind: no new decisions, no detection, no orders while one plays. The body still
-        // steps its animation and its weapon on the orders it already has, so a cutscene's own actors are not
-        // frozen mid-pose.
+        // A cutscene holds the mind's decisions, not its body: no new detection, and no orders from the squad or the
+        // alarm while one plays (those are held where they tick), but the mind still runs its script and its action
+        // stack and still sends the body its update, so a cutscene's own actors walk their patrol and play their
+        // scripted animation instead of standing frozen at their spawn. Merely stepping the body here would not do:
+        // the orders live in the action stack, which only the mind advances — the body's channels still hold
+        // whatever frame the mind last wrote, so a bare update would walk a soldier straight past its node, through
+        // walls its mind no longer keeps it to, and keep firing a held trigger, while a soldier standing at its
+        // spawn holds nothing at all and would never start moving.
         if (!level.IsCutsceneRunning && !level.CutsceneRanLastTick)
         {
             Mind?.Run(this);
+        }
+        else
+        {
+            Mind?.RunCutscene(this);
         }
 
         Weapon.RunDelayed();

@@ -286,7 +286,8 @@ public sealed partial class Igi2AiSquadTask : Igi2Task
         ArgumentNullException.ThrowIfNull(level);
 
         // A cutscene holds the squad: no new orders, no target lists, no events while one plays. Its soldiers'
-        // children still run, and their minds are held at the body's delayed pass.
+        // children still run, and their minds run cutscene-mode at the body's delayed pass: script and body
+        // stepped, spotting held.
         if (!level.IsCutsceneRunning && !level.CutsceneRanLastTick)
         {
             Squad?.Run();
