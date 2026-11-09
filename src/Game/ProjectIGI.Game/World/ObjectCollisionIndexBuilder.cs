@@ -25,7 +25,10 @@ internal static class ObjectCollisionIndexBuilder
         instanceName.StartsWith("colbox", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Gets whether any placement is owned by a task descended from an <c>Elevator</c> task.
+    /// Gets whether any placement is owned by a task descended from an <c>Elevator</c> task
+    /// (IGI 1) or a <c>Lift</c> task (IGI 2's vertical transport — see
+    /// <c>Igi2LiftTask.TypeName</c>; no <c>Elevator</c> type is registered for IGI 2, so checking
+    /// only for <c>Elevator</c> left IGI 2's lift-doorway <c>colbox*</c> volumes solid to the player).
     /// </summary>
     /// <remarks>
     /// The engine excludes elevator-shaft collision boxes from the human trace so the player can board
@@ -40,7 +43,8 @@ internal static class ObjectCollisionIndexBuilder
             for (GameTask? current = placement.Owner; current is not null; current = current.Parent)
             {
                 if (current is DeclaredTask declared
-                    && string.Equals(declared.Type.Name, "Elevator", StringComparison.Ordinal))
+                    && (string.Equals(declared.Type.Name, "Elevator", StringComparison.Ordinal)
+                        || string.Equals(declared.Type.Name, "Lift", StringComparison.Ordinal)))
                 {
                     return true;
                 }
