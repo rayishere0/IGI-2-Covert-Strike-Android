@@ -261,10 +261,10 @@ public partial class ScrollListBoxTask
         {
             KeepSelectionVisible();
 
-            // The selection moved, so the modify script runs: screen 914's mission list passes
+            // The selection moved, so the focus script runs: screen 914's mission list passes
             // MenuStatsScreen_SetActiveMissionID(this.nActiveID) there, which is what tells the
             // stats screen to show this mission's name and description.
-            Run(ModifyDataScript);
+            Run(OnFocusItem);
         }
 
         PendingCommand = MenuWindowCommand.None;
