@@ -91,7 +91,7 @@ public sealed partial class Igi2HudRenderer
 
     // The night-vision wash: a flat green over the view, strong enough to read as
     // goggles at a glance without hiding what is in the lenses. One place to tune.
-    private static readonly Bgra32 NightVisionTint = Bgra32.FromRgba(0, 255, 0, 110);
+    private static readonly Bgra32 NightVisionTint = Bgra32.FromRgba(0, 255, 0, 40);
 
     /// <summary>The night-vision wash: a flat green quad over the whole view, drawn under the binoculars' frame.</summary>
     private void DrawNightVisionTint(SpriteBatch batch, float width, float height) =>
