@@ -80,6 +80,7 @@ public sealed partial class GameHost
         TouchButton.Thermal => "Title_igi2_Thermal",
         TouchButton.Use => "Activate",
         TouchButton.Weapon => "NextWeapon",
+        TouchButton.PrevWeapon => "PrevWeapon",
         TouchButton.Peek => "Peek",
         TouchButton.Map => "MapComputer",
         TouchButton.Binoculars => "Binoculars",
