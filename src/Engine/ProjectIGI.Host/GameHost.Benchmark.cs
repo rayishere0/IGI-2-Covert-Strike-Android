@@ -185,6 +185,9 @@ public sealed partial class GameHost
         }
 
         _benchmarkPendingAuto = true;
+        _logger.Information(
+            "Benchmark",
+            "First-run benchmark armed: no settings file was loaded and no run has finished or been skipped; it starts on the first menu frame.");
     }
 
     /// <summary>Starts a benchmark run over the Weather Station, from the first run or the cheats menu.</summary>

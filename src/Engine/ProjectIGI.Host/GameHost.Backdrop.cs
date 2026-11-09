@@ -26,8 +26,14 @@ public sealed partial class GameHost
     {
         // The showcase's first backdrop, asked for a couple of menu frames in so the shell is already on
         // screen. It is built on a worker like every other one; until it arrives the menu sits over its
-        // dark backdrop rather than over a blank blue clear.
-        if (_menuFlow.OverShowcase && _menuFlow.ShowcasePending && _loop.Clock.FrameCount >= 2)
+        // dark backdrop rather than over a blank blue clear. Not while the first-run benchmark is armed
+        // or running: the run asks for the Weather Station on the first menu frame, and this asking for
+        // the default showcase (mission 1) instead supersedes it in the preview loader -- the station
+        // finishes building, is dropped as no longer wanted, and the run waits 30 seconds for a level
+        // nobody is building before giving up. The run asks for the previous showcase again when it
+        // ends, and a run that never starts leaves both flags clear, so this fires on the next frame.
+        if (_menuFlow.OverShowcase && _menuFlow.ShowcasePending && !BenchmarkRunning && !_benchmarkPendingAuto
+            && _loop.Clock.FrameCount >= 2)
         {
             _menuFlow.ShowcasePending = false;
 
