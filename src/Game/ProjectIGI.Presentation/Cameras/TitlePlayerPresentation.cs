@@ -37,7 +37,10 @@ public sealed class TitlePlayerPresentation
         Frame frame = Capture(player);
         _previous = _current;
         _current = frame;
-        if (_previous is null || frame.Cutscene || _previous.Cutscene != frame.Cutscene
+        // A cutscene's own frames are not snapped together: the camera moves between its ticks, and the render-time
+        // blend is what smooths it -- snapping here is what held every cutscene frame to its tick. The change into
+        // and out of a cutscene still snaps, as does a cut to a camera far away.
+        if (_previous is null || _previous.Cutscene != frame.Cutscene
             || (frame.Eye.Position - _previous.Eye.Position).Length > 32.0)
         {
             _previous = frame;

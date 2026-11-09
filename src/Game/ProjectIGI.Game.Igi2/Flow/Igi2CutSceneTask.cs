@@ -184,15 +184,23 @@ public sealed partial class Igi2CutSceneTask : Igi2Task
 
         if (IsRun)
         {
+            // The clock first, so the view placed below is from the tick the clock has reached, not the one before
+            // it: after a stall the camera was a tick behind the clock it was catching up to, and the gap froze in.
+            // A cutscene with a Time delta script keeps its own advance below, after the cameras, as before.
+            if (_forward!.IsEmpty && _isFinished == 0)
+            {
+                AdvanceClock(level);
+            }
+
             PlaceCameras(level);
+
+            // The clock the placed view is from, for the subtitles and the band filter to count by.
+            level.SetCutsceneTick(this, Tick);
+
             if (!_forward!.IsEmpty)
             {
                 double seconds = level.Evaluate(_forward);
                 Tick = Math.Max(0, Tick + (int)LevelExpression.Truncate(seconds * Igi2LevelRun.Frequency));
-            }
-            else if (_isFinished == 0)
-            {
-                AdvanceClock(level);
             }
         }
         else
@@ -232,10 +240,12 @@ public sealed partial class Igi2CutSceneTask : Igi2Task
 
     /// <summary>
     /// Advances the clock by the wall time since it last ran, at thirty ticks a second: the cutscene plays at its
-    /// authored speed however many ticks the host dropped, and a tick that ran on time still advances it by one.
-    /// The clock is anchored where the cutscene started running, and moves toward that anchor by at most half a
-    /// second a run, so a long stall is caught up over the runs that follow rather than in one jump -- and a
-    /// cutscene that played to its end holds its clock there, as before.
+    /// authored speed however many ticks the host dropped. The clock is anchored where the cutscene started running,
+    /// and moves toward that anchor by at most half a second a run, so a long stall is caught up over the runs that
+    /// follow rather than in one jump -- and a cutscene that played to its end holds its clock there, as before.
+    /// It may stand still: when the clock has already reached its wall target it advances by nought, never below it,
+    /// or the camera would run ahead of the actors -- which advance one tick a run -- by the stall, and stay there
+    /// for the rest of the cutscene.
     /// </summary>
     private void AdvanceClock(Igi2LevelRun level)
     {
@@ -249,7 +259,7 @@ public sealed partial class Igi2CutSceneTask : Igi2Task
         }
 
         long target = _clockAnchorTick + ((now - _clockAnchorWallMs) * Igi2LevelRun.Frequency) / 1000;
-        int advance = (int)Math.Clamp(target - Tick, 1, MaxClockAdvancePerRun);
+        int advance = (int)Math.Clamp(target - Tick, 0, MaxClockAdvancePerRun);
         Tick += advance;
     }
 

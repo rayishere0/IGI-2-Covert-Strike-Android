@@ -1,6 +1,7 @@
 using ProjectIGI.Core.Numerics;
 using ProjectIGI.Engine.Tasks;
 using ProjectIGI.Game.Igi2.Animation;
+using ProjectIGI.Game.Igi2.Flow;
 using ProjectIGI.Game.Igi2.Humans;
 using ProjectIGI.Game.Igi2.Player;
 using ProjectIGI.Game.Igi2.Weapons;
@@ -296,12 +297,14 @@ public sealed partial class Igi2HumanSoldier : Igi2Human
     /// The soldier's delayed half: <c>HumanSoldier_RunDelayedHandler</c> (<c>igi2 0x4EA1B0</c>), then the shared human's run
     /// handler with the body's children, its mind last.
     /// </summary>
+    /// <param name="level">The level's run, whose cutscene flag holds the mind while one plays.</param>
     /// <remarks>
     /// The main clip steps a frame a tick again, the soldier is as visible as the light it stands in (less crouched or lying),
     /// its speed scale is one, and it takes the room its nodes place it in (<see cref="UpdateSector"/>).
     /// </remarks>
-    public void RunDelayed()
+    public void RunDelayed(Igi2LevelRun level)
     {
+        ArgumentNullException.ThrowIfNull(level);
         MainTimeStepReset();
         VisibilityFactor = Pose switch
         {
@@ -314,7 +317,15 @@ public sealed partial class Igi2HumanSoldier : Igi2Human
         RunHuman();
         Animation.AutoStep();
         TouchPose();
-        Mind?.Run(this);
+
+        // A cutscene holds the mind: no new decisions, no detection, no orders while one plays. The body still
+        // steps its animation and its weapon on the orders it already has, so a cutscene's own actors are not
+        // frozen mid-pose.
+        if (!level.IsCutsceneRunning && !level.CutsceneRanLastTick)
+        {
+            Mind?.Run(this);
+        }
+
         Weapon.RunDelayed();
         // weapon.c Weapon_RunDelayedHandler runs the GunShot child after firing; gunshot.c GunShot_RunHandler.
         Weapon.Firing?.RunGunShot();
