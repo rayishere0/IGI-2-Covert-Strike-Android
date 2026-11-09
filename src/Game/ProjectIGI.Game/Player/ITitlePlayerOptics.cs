@@ -12,7 +12,13 @@ public interface ITitlePlayerOptics
     /// <summary>Gets a value indicating whether the player is looking through the binoculars.</summary>
     bool IsBinocularsOpen { get; }
 
-    /// <summary>Gets a value indicating whether the player's view sees in infrared — the thermal goggles are up.</summary>
+    /// <summary>
+    /// Gets a value indicating whether the player is looking through a thermo-sight rifle's scope: the sight is on and
+    /// its overlay is up, so the view sees in infrared through the scope's glass rather than the binoculars'.
+    /// </summary>
+    bool IsThermalScopeOpen { get; }
+
+    /// <summary>Gets a value indicating whether the player's view sees in infrared — the thermal goggles are up, or a thermo-sight rifle's scope is.</summary>
     bool IsInfrared { get; }
 
     /// <summary>Gets where the player is looking, for the compass, in radians.</summary>

@@ -55,6 +55,16 @@ public sealed partial class Igi2HudRenderer
                 DrawSniperReticle(batch, title, width, height, cx, cy);
                 break;
         }
+
+        // The infrared frame follows the thermo sight through every scope's glass, not just the default sniper overlay:
+        // the other overlays never drew it, so a thermo-sight rifle wearing one of their glasses showed no frame. The
+        // player's infrared flag is what the thermal key sets and what aiming the Barrett Thermo sets, and the scripts'
+        // OverlayHolder is the other way a view is made infrared. Only the Barrett Thermo can have infrared on while
+        // scoped, so the ordinary scopes draw exactly as before.
+        if (title.Human.IsInfraEnabled || title.ScreenOverlay?.IsInfrared == true)
+        {
+            DrawBinocularFrame(batch, InfraredSprite, width, height);
+        }
     }
 
     /// <summary><c>SniperOverlay_Draw</c>'s reticle, range and compass, all in black.</summary>
@@ -75,10 +85,6 @@ public sealed partial class Igi2HudRenderer
         // SniperOverlay_DrawRangeMeter and SniperOverlay_DrawCompass.
         Text(batch, RangeText(title), MathF.Floor(width * 0.365f), MathF.Floor(height * 0.52f), Black);
         DrawCompass(batch, title, width * 0.325f, height * 0.56f, width * 0.35f, Black, Black);
-        if (title.ScreenOverlay?.IsInfrared == true)
-        {
-            DrawBinocularFrame(batch, InfraredSprite, width, height);
-        }
     }
 
     /// <summary><c>AugSniperOverlay_Draw</c>: posts left, right and below, hairlines on to a small ring at the middle.</summary>

@@ -102,6 +102,7 @@ public static class Igi2WeaponConstants
         ("TASKTYPE_MEDIPACK", Igi2MedipackTask.TypeName),
         ("TASKTYPE_LASERDESIGNATOR", Igi2LaserDesignatorTask.TypeName),
         ("TASKTYPE_LASERDOTSWITCH", Igi2LaserDotSwitchTask.TypeName),
+        ("TASKTYPE_THERMOSIGHT", Igi2ThermoSightTask.TypeName),
         ("TASKTYPE_GUNSHOT", "GunShot"),
         ("TASKTYPE_GRENADE", "Grenade"),
         ("TASKTYPE_IMPACTGRENADE", "ImpactGrenade"),

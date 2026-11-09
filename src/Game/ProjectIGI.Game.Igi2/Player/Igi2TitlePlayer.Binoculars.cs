@@ -84,6 +84,10 @@ public sealed partial class Igi2TitlePlayer
         Matrix3f view = Human.View.Orientation;
         Vector3f forward = new(view.M12, view.M22, view.M32);
         bool binoculars = overlay == BinocularOverlayType;
+        // The scope's glass picks people out too, while its infrared is on: the Barrett Thermo's sight shows only body
+        // heat, so the scan runs for a scope overlay whenever infrared is on, not only for the binoculars'. The laser
+        // designator never has infrared on, so its overlay still only reads the range.
+        bool thermalScope = !binoculars && overlay != LaserDesignatorOverlayType && Human.IsInfraEnabled;
         WorldLineTrace trace = new(1)
         {
             Includes = owner => !ReferenceEquals(owner, Human),
@@ -98,7 +102,7 @@ public sealed partial class Igi2TitlePlayer
             ForgetFarTarget();
         }
 
-        if (!binoculars)
+        if (!binoculars && !thermalScope)
         {
             return;
         }

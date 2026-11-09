@@ -11,8 +11,8 @@ namespace ProjectIGI.Game.Igi2.Weapons;
 /// Ported: the <c>Gun</c> (<c>Gun_Open</c>, <c>igi2 0x4835E0</c>), the <c>FireMode</c> (<c>FireMode_Open</c>,
 /// <c>0x51BE60</c>), the <c>Zoom</c> (<c>Zoom_Open</c>, <c>0x525DA0</c>), the <c>Knife</c> (<c>Knife_Open</c>,
 /// <c>0x4CF970</c>), the <c>PullPin</c> (<c>PullPin_Open</c>, <c>0x4C80C0</c>) and the <c>ProjectileLauncher</c>
-/// (<c>ProjectileLauncher_Open</c>, <c>0x526E20</c>), the designator, the proximity and remote mines, the medipack and the laser
-/// sight's switch. C4 is not: no single-player mission hands it out.
+/// (<c>ProjectileLauncher_Open</c>, <c>0x526E20</c>), the designator, the proximity and remote mines, the medipack, the laser
+/// sight's switch and the thermo sight (<c>ThermoSight_Open</c>). C4 is not: no single-player mission hands it out.
 /// </para>
 /// </remarks>
 public static class Igi2FireHandlers
@@ -33,6 +33,7 @@ public static class Igi2FireHandlers
         Igi2ProximityMineFire remoteMine = new(remote: true);
         Igi2LaserDotSwitchFire laserDotSwitch = new();
         Igi2MedipackFire medipack = new();
+        Igi2ThermoSightFire thermoSight = new();
         return parameters => parameters switch
         {
             Igi2PullPinTask => pin,
@@ -46,6 +47,7 @@ public static class Igi2FireHandlers
             Igi2RemoteMineTask => remoteMine,
             Igi2LaserDotSwitchTask => laserDotSwitch,
             Igi2MedipackTask => medipack,
+            Igi2ThermoSightTask => thermoSight,
             _ => null,
         };
     }

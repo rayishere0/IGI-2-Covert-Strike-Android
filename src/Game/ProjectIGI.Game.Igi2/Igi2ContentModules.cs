@@ -49,7 +49,7 @@ public static class Igi2ContentModules
 /// no evidence the list was complete.
 /// </para>
 /// <para>
-/// The values come from <c>igi2.exe</c> — <c>AISquad_RegisterScriptValues</c> (<c>0x49A880</c>) for the
+/// The values come from <c>igi2.exe</c> â€” <c>AISquad_RegisterScriptValues</c> (<c>0x49A880</c>) for the
 /// AI types and <c>OverlayHolder_Open</c> (<c>0x533BC0</c>) for the overlays. Reading them mattered more
 /// than it looks: a wrong value does not fail. It lands as a parameter on a task, the tree still builds,
 /// and it resurfaces much later looking like a gameplay bug with no trace back to here.
@@ -175,6 +175,7 @@ public sealed class Igi2WeaponContentModule : IContentModule
         context.Types.Register<Weapons.Igi2PullPinTask>(Weapons.Igi2PullPinTask.TypeName);
         context.Types.Register<Weapons.Igi2FireModeTask>(Weapons.Igi2FireModeTask.TypeName);
         context.Types.Register<Weapons.Igi2LaserDotSwitchTask>(Weapons.Igi2LaserDotSwitchTask.TypeName);
+        context.Types.Register<Weapons.Igi2ThermoSightTask>(Weapons.Igi2ThermoSightTask.TypeName);
         Weapons.Igi2WeaponConstants.Register(context.Natives, context.Types);
         Weapons.Igi2WeaponTables tables = context.Services.GetOrProvide(() => new Weapons.Igi2WeaponTables(context.Logger));
         Scripting.Igi2ScriptFunctions functions = context.Services.GetOrProvide(() => new Scripting.Igi2ScriptFunctions());
@@ -452,7 +453,7 @@ public sealed class Igi2PhysicsObjectContentModule : IContentModule
 /// <summary>The terrain's task types: the tile grid, its placement, its material table and its holes.</summary>
 /// <remarks>
 /// <para>
-/// Without these the four types load as placeholders — the tree is right and the parameter values are
+/// Without these the four types load as placeholders â€” the tree is right and the parameter values are
 /// there, but nothing knows a tile has an id, so no <c>.thm</c>, <c>.tmm</c> or <c>.tlm</c> is ever
 /// asked for and the level renders with no ground.
 /// </para>
@@ -491,7 +492,7 @@ public sealed class Igi2TerrainContentModule : IContentModule
 /// <summary>The forest's task types: a stand of trees and the wind that moves it.</summary>
 /// <remarks>
 /// Without these the two types load as placeholders, so nothing knows a stand has a level id, and
-/// without the id nothing can name its <c>forest_%d.dat</c> — the placement file is named by the task
+/// without the id nothing can name its <c>forest_%d.dat</c> â€” the placement file is named by the task
 /// rather than by a parameter, so an unrecognised task means an unreachable file.
 /// </remarks>
 public sealed class Igi2ForestContentModule : IContentModule
@@ -544,7 +545,7 @@ public sealed class Igi2WaterContentModule : IContentModule
 /// <summary>The sky's task types: the dome, its scrolling layers, and its colour keyframes.</summary>
 /// <remarks>
 /// Without these the three load as placeholders, and a sky layer's texture stays the string the level
-/// authored rather than the one the engine actually opens — <c>FlatSkyLayer_FixFilename</c> rebases
+/// authored rather than the one the engine actually opens â€” <c>FlatSkyLayer_FixFilename</c> rebases
 /// every name onto <c>MISSION:textures/</c>, and only the registered class knows to do that.
 /// </remarks>
 public sealed class Igi2SkyContentModule : IContentModule

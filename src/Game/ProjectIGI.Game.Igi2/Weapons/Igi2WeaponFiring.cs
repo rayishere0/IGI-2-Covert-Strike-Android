@@ -182,6 +182,14 @@ public sealed class Igi2WeaponFiring
     public Igi2WeaponOverlayStatus OverlayStatus { get; private set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the weapon in hand's thermo-chemical imaging sight is switched on: its
+    /// <c>ThermoSight</c> fire type fired it, or going in hand armed it. The player's tick-end infrared check reads it
+    /// together with the scope overlay, so the sight only shows while the scope is up; putting the weapon away or taking
+    /// the overlay down switches it off again.
+    /// </summary>
+    public bool IsThermoSightOn { get; internal set; }
+
+    /// <summary>
     /// Sets the weapon's overlay status, <c>Weapon_SetOverlayStatus</c> (<c>igi2 0x51F1C0</c>): taking it down takes the
     /// holder's zoom off and the weapon's overlay with it.
     /// </summary>
@@ -192,6 +200,7 @@ public sealed class Igi2WeaponFiring
         {
             Owner?.ZoomView?.DisableZoomMode();
             Effects.RemoveOverlay();
+            IsThermoSightOn = false;
         }
 
         OverlayStatus = status;
@@ -204,9 +213,11 @@ public sealed class Igi2WeaponFiring
     /// <param name="item">The weapon.</param>
     /// <returns><see langword="true"/> when it went in hand; a weapon not carried does not.</returns>
     /// <remarks>
-    /// Of the fire types' own handlers single-player ships only <c>ThermoSight_WeaponDeactivateHandler</c>: infrared off and the overlay
-    /// down, which the overlay's coming down here and the player's tick-end infrared check (<c>HumanPlayer_RunDelayedHandler</c>) do.
-    /// A spent throwable put away is dropped by the inventory (<see cref="Igi2Inventory.Activate"/>).
+    /// Each fire type's own activate handler runs as its weapon goes in hand, and each of the weapon put away's
+    /// deactivate handlers runs as it leaves it (<c>Weapon_eActivateQTaskEvent</c>, <c>Weapon_eDeactivateQTaskEvent</c>):
+    /// the thermo sight's arm it going in hand and switch it off going away (<c>ThermoSight_WeaponDeactivateHandler</c>),
+    /// which the overlay's coming down here also does. A spent throwable put away is dropped by the inventory
+    /// (<see cref="Igi2Inventory.Activate"/>).
     /// </remarks>
     public bool Activate(Igi2WeaponItem item)
     {
@@ -218,10 +229,45 @@ public sealed class Igi2WeaponFiring
 
         if (_inventory.Current is not null)
         {
+            RunDeactivateHandlers(_inventory.Current);
             SetOverlayStatus(Igi2WeaponOverlayStatus.None);
         }
 
-        return _inventory.Activate(item);
+        if (!_inventory.Activate(item))
+        {
+            return false;
+        }
+
+        RunActivateHandlers(item);
+        return true;
+    }
+
+    /// <summary>Runs a weapon's fire types' activate handlers as it goes in hand.</summary>
+    /// <param name="item">The weapon going in hand.</param>
+    private void RunActivateHandlers(Igi2WeaponItem item)
+    {
+        for (int slot = 0; slot < Igi2WeaponTypeTask.FireTypeSlots; slot++)
+        {
+            if (item.WeaponType.FireType(slot) is { } parameters
+                && _handlers(parameters) is IIgi2FireActivateHandler handler)
+            {
+                handler.Activate(this, item);
+            }
+        }
+    }
+
+    /// <summary>Runs a weapon's fire types' deactivate handlers as it is put away.</summary>
+    /// <param name="item">The weapon leaving the hand.</param>
+    private void RunDeactivateHandlers(Igi2WeaponItem item)
+    {
+        for (int slot = 0; slot < Igi2WeaponTypeTask.FireTypeSlots; slot++)
+        {
+            if (item.WeaponType.FireType(slot) is { } parameters
+                && _handlers(parameters) is IIgi2FireDeactivateHandler handler)
+            {
+                handler.Deactivate(this, item);
+            }
+        }
     }
 
     /// <summary>

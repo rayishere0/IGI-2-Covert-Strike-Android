@@ -629,3 +629,17 @@ public sealed partial class Igi2LaserDotSwitchTask : Igi2Task
     /// <summary>The name scripts spawn this type by.</summary>
     public const string TypeName = "LaserDotSwitch";
 }
+
+/// <summary>
+/// A fire type that switches a weapon's thermo-chemical imaging sight on, <c>ThermoSight</c>; it has no parameters.
+/// </summary>
+/// <remarks>
+/// The parameters are the script's own declaration, in wire order (<c>Task_DeclareParameters</c> in <c>WEAPONS/weapon.qvm</c>). A fire type is a child of the weapon whose fire it carries out.
+/// Retail's <c>ThermoSight_WeaponDeactivateHandler</c> switches the sight off again when the weapon is put away; the
+/// sight itself only shows while the weapon's scope is up, so merely carrying the rifle is not infrared.
+/// </remarks>
+public sealed partial class Igi2ThermoSightTask : Igi2Task
+{
+    /// <summary>The name scripts spawn this type by.</summary>
+    public const string TypeName = "ThermoSight";
+}

@@ -111,3 +111,28 @@ public interface IIgi2FireHandler
     /// <returns>What letting go fired, nothing for most.</returns>
     Igi2FireResult Release(in Igi2FireRequest request);
 }
+
+/// <summary>
+/// A fire type that does something when its weapon goes in hand, <c>Weapon_eActivateQTaskEvent</c>: the half of the
+/// weapon's activation its own handlers carry, which <c>Weapon_Activate</c> runs for each fire type.
+/// </summary>
+public interface IIgi2FireActivateHandler
+{
+    /// <summary>Puts the weapon in hand.</summary>
+    /// <param name="weapon">The weapon going in hand.</param>
+    /// <param name="item">The weapon's inventory item.</param>
+    void Activate(Igi2WeaponFiring weapon, Igi2WeaponItem item);
+}
+
+/// <summary>
+/// A fire type that does something when its weapon is put away, <c>Weapon_eDeactivateQTaskEvent</c>: the half of the
+/// weapon's deactivation its own handlers carry, which <c>Weapon_Activate</c> runs for each fire type of the weapon
+/// leaving the hand.
+/// </summary>
+public interface IIgi2FireDeactivateHandler
+{
+    /// <summary>Puts the weapon away.</summary>
+    /// <param name="weapon">The weapon leaving the hand.</param>
+    /// <param name="item">The weapon's inventory item.</param>
+    void Deactivate(Igi2WeaponFiring weapon, Igi2WeaponItem item);
+}
