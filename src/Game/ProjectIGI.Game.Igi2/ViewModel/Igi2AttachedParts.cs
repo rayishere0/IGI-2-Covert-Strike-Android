@@ -13,11 +13,12 @@ public readonly record struct Igi2AttachedPart(string Model, Vector3f Position, 
 /// <summary>The models a clip's attach objects hang on the bones of a posed body.</summary>
 /// <remarks>
 /// <para>
-/// The clip's attach objects stand on their bones at their relative positions, moved by every re-link the clip has passed. A
-/// record's matrix turns its object as <c>ModelObj_CreateAttachObject</c> (<c>igi2 0x56D0B0</c>) reads it, its first two columns
-/// as rows and the third row their cross product; a re-link's matrix is taken whole and transposed (<c>AnimController_Step</c>,
-/// <c>0x5549A0</c>). The object then stands at the bone's orientation times that (<c>ModelObj_UpdateAttachment</c>, <c>0x56CB40</c>:
-/// parent · bone · relative).
+/// The clip's attach objects stand on their bones at their relative positions, moved by every re-link the clip has passed and by
+/// their own key track where they have one, sampled the way the controller samples any track: the translation linear between
+/// keys, the rotation a plain slerp. A record's matrix turns its object as <c>ModelObj_CreateAttachObject</c> (<c>igi2 0x56D0B0</c>)
+/// reads it, its first two columns as rows and the third row their cross product; a re-link's matrix is taken whole and transposed
+/// (<c>AnimController_Step</c>, <c>0x5549A0</c>). The object then stands at the bone's orientation times that
+/// (<c>ModelObj_UpdateAttachment</c>, <c>0x56CB40</c>: parent · bone · relative).
 /// </para>
 /// <para>
 /// One named <c>weapon</c> draws the weapon in hand's <c>Fixed Model</c>, as <c>WeaponMagicObj_GetModelName</c> (<c>0x4733B0</c>)
@@ -142,7 +143,10 @@ public static class Igi2AttachedParts
         return (at, o);
     }
 
-    /// <summary>An attach object's bone and relative placement after the re-links the clip has passed by a time.</summary>
+    /// <summary>
+    /// An attach object's bone and relative placement at a time: its own key track sampled when it has one, over the
+    /// re-links the clip has passed by then, over where it starts.
+    /// </summary>
     private static (int Bone, Vector3f Position, Matrix3f Orientation) Resolve(Igi2AnimationClip clip, int index, int time)
     {
         Igi2AnimationAttachObject attached = clip.AttachObjects[index];
@@ -162,6 +166,14 @@ public static class Igi2AttachedParts
                 position = link.Translation;
                 orientation = link.Orientation.Transposed();
             }
+        }
+
+        // The object's own key track is its motion relative to its bone: the sampled key is the placement, the bone
+        // still the one the re-links left it on. Before its first key it stands where the re-links left it.
+        if (Igi2ClipSampler.SampleAttach(attached.Keys, time, out Vector3f keyPosition, out Quaternion32 keyRotation))
+        {
+            position = keyPosition;
+            orientation = BonePose.ToMatrix(keyRotation);
         }
 
         return (bone, position, orientation);

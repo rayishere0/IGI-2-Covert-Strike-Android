@@ -20,8 +20,7 @@ namespace ProjectIGI.Game.Igi2.ViewModel;
 /// </para>
 /// <para>
 /// Nothing is drawn while the view is zoomed or its owner is dead, as <c>HumanView_EnterHandler</c> (<c>0x4D5DB0</c>)
-/// declines then. Not yet: an attach object's own key track, the grenade pin and the rocket, which have handlers of
-/// their own.
+/// declines then. Not yet: the grenade pin and the rocket, which have handlers of their own.
 /// </para>
 /// </remarks>
 public sealed class Igi2FirstPersonFrame
