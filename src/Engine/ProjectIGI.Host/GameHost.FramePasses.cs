@@ -179,7 +179,18 @@ public sealed partial class GameHost
     /// <summary>Runs the shell over its own input, or lets the game's binds have the keys when it is not up.</summary>
     private void UpdateShell(FrameLoopState state)
     {
-        if (!(_menuFlow.MenuMode && state.Shell is not null))
+        // The load view over the RETAIL menu. The shell's stack is the only place the slots view lives, and the retail
+        // menu never switches MenuMode on, so a request over it was dropped by the guard below and its screen could
+        // never draw. While the retail main menu is up the shell is driven for exactly this one screen: a pending
+        // request, or a stack already topped by the load view. Nothing else of the shell runs — its home page stays
+        // inert in the stack, never updated or drawn — and the update below still marks the frame captured, so the
+        // retail menu under it hears no tap twice.
+        bool loadGameOverlay = state.Shell is not null
+            && !_menuFlow.MenuMode
+            && IsRetailMainMenuUp
+            && (LoadGameRequested || state.Shell.Stack.Top is LoadGameScreen);
+        _loadGameOverlayOpen = loadGameOverlay;
+        if (!(_menuFlow.MenuMode && state.Shell is not null) && !loadGameOverlay)
         {
             // A load request has no menu to open over outside it, so a stale one is dropped here rather than carried into the next menu.
             LoadGameRequested = false;
@@ -194,7 +205,7 @@ public sealed partial class GameHost
         // heard taps would fire invisible buttons under the drone view. Everything else in this
         // block still runs -- the press queue is drained, the held-frame handover still fires --
         // so the run's own backdrop swap is unaffected; only the shell's reading of input stops.
-        if (_menuFlow.MenuMode && state.Shell is not null)
+        if ((_menuFlow.MenuMode || loadGameOverlay) && state.Shell is not null)
         {
             int shellNow = _loop.TimeSource.Milliseconds;
             float shellElapsed = Math.Clamp((shellNow - state.LastShellMilliseconds) / 1000f, 0f, 0.1f);
@@ -215,6 +226,10 @@ public sealed partial class GameHost
                 if (!_menuFlow.PauseMenu && _session.Mission is null && !BenchmarkRunning)
                 {
                     state.Shell.Stack.Reset(new LoadGameScreen(state.Shell.Context), animate: false);
+                    if (loadGameOverlay)
+                    {
+                        _logger.Information("Menu", "Load game opened over the retail menu.");
+                    }
                 }
             }
 
@@ -587,7 +602,13 @@ public sealed partial class GameHost
         // the console (which goes over even the shell).
         // The shell keeps being DRAWN through the mission-entry shot even though the menu is over, so
         // that it can fade rather than vanish. It hears nothing while it does.
-        if ((_menuFlow.MenuMode || _entry.IsRunning) && state.Shell is not null)
+        // The load view over the retail menu draws here too. The retail menu drew during the loop's frame, so this
+        // pass — after it — is what puts the slots view on top; the shell's backdrop fills in behind it.
+        bool loadGameOverlay = state.Shell is { } overlayShell
+            && !_menuFlow.MenuMode
+            && IsRetailMainMenuUp
+            && overlayShell.Stack.Top is LoadGameScreen;
+        if ((_menuFlow.MenuMode || _entry.IsRunning || loadGameOverlay) && state.Shell is not null)
         {
             // Exactly one layer may draw a pointer. The console is drawn after this and over it,
             // so while it is up it owns the cursor; otherwise the reader sees two arrows.
