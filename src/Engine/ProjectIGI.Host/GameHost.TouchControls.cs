@@ -379,12 +379,18 @@ public sealed partial class GameHost
             // slider in Settings), separate from the mouse sensitivity.
             // Axis signs are a best guess for landscape and must be verified on a
             // real device (flip yaw/pitch here if a direction feels backwards).
+            // Invert gyroscope (profile.InvertGyro, Settings toggle) negates both
+            // deltas here, at the application point — not at the sensor — so the
+            // view turns opposite to the tilt on yaw and pitch alike. It composes
+            // with InvertMouse rather than replacing it: with both on, pitch is
+            // inverted twice (net normal) and yaw once.
             if (profile is { GyroEnabled: true } && (gyroYaw != 0f || gyroPitch != 0f))
             {
                 float radiansPerCount = MouseLookSettings.FromSensitivity(
                     profile.GyroSensitivity, profile.InvertMouse).RadiansPerCount;
                 float countsPerRadian = 1f / MathF.Max(0.00001f, radiansPerCount);
-                input.Mouse.AddMotion(gyroYaw * countsPerRadian, gyroPitch * countsPerRadian);
+                float invert = profile.InvertGyro ? -1f : 1f;
+                input.Mouse.AddMotion(invert * gyroYaw * countsPerRadian, invert * gyroPitch * countsPerRadian);
             }
         }
 
