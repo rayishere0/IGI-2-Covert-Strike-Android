@@ -38,6 +38,7 @@ public final class NativeEngine {
     public static native boolean nativeIsTextFieldFocused();
     public static native boolean nativeIsKeyboardRequested();
     public static native boolean nativeIsMainMenu();
+    public static native boolean nativeIsCreditsScreen();
     public static native void nativeSetKeyboardRequested(boolean requested);
     public static native void nativeShutdown();
 

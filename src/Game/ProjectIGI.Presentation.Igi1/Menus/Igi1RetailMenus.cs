@@ -64,6 +64,9 @@ internal sealed class Igi1RetailMenus : IRetailMenus
     public void CloseScreens() => _shell.CloseScreens();
 
     /// <inheritdoc/>
+    public int ActiveMenuScreen => _menu.Manager.Navigator.CurrentScreen;
+
+    /// <inheritdoc/>
     public void RunAction(string expression) => _menu.Manager.RunAction(expression);
 
     /// <inheritdoc/>

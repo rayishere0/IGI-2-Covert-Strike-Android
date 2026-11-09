@@ -392,6 +392,13 @@ public static class AndroidHost
         return _gameHost is { } host && host.IsOnMainMenu ? 1 : 0;
     }
 
+    /// <summary>Whether the retail credits screen is up — the Android side polls this to show the GitHub link button.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "IsCreditsScreen")]
+    public static int IsCreditsScreen()
+    {
+        return _gameHost is { } host && host.IsCreditsScreen ? 1 : 0;
+    }
+
     /// <summary>Sets the soft-keyboard request flag (the Android side clears it when Back dismisses the keyboard).</summary>
     [UnmanagedCallersOnly(EntryPoint = "SetKeyboardRequested")]
     public static void SetKeyboardRequested(int value)

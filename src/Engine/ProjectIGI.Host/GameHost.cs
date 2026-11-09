@@ -83,6 +83,15 @@ public sealed partial class GameHost : IDisposable
     /// </summary>
     public bool IsOnMainMenu => _menuFlow.MenuMode && !_menuFlow.PauseMenu && _session.Mission == null;
 
+    /// <summary>The id of I.G.I. 2's retail credits screen, as mainmenu.qvm numbers it.</summary>
+    private const int Igi2CreditsScreenId = 916;
+
+    /// <summary>
+    /// Gets whether the retail credits screen is up on the main menu.
+    /// The Android side polls this to show the GitHub link button on the credits screen only.
+    /// </summary>
+    public bool IsCreditsScreen => IsOnMainMenu && _retailMenus is { } menus && menus.ActiveMenuScreen == Igi2CreditsScreenId;
+
     // --- Environment, supplied by the composition root ---
     private readonly IPlatformHost _platform;
     private readonly IWorkScheduler _work;
