@@ -128,7 +128,13 @@ public sealed partial class GameHost
         }
 
         _gyroLogLastTimestamp = now;
-        _logger.Information("Gyro", $"Drained yaw={_gyroLogYaw:F3} pitch={_gyroLogPitch:F3} enabled={profile?.GyroEnabled} sensitivity={profile?.GyroSensitivity} mode={mode} touchInUse={input.Touch.InUse} anyDown={input.Touch.AnyDown}");
+        // No profile is active in the menu before one is created (a fresh install loads
+        // zero profiles), so the nullable reads would print empty: gyro is effectively off
+        // (the apply gate needs a profile with the toggle on) and the sensitivity is the
+        // profile default (PlayerProfile.GyroSensitivity = 0.5f).
+        bool gyroEnabled = profile?.GyroEnabled ?? false;
+        float gyroSensitivity = profile?.GyroSensitivity ?? 0.5f;
+        _logger.Information("Gyro", $"Drained yaw={_gyroLogYaw:F3} pitch={_gyroLogPitch:F3} enabled={gyroEnabled} sensitivity={gyroSensitivity} mode={mode} touchInUse={input.Touch.InUse} anyDown={input.Touch.AnyDown}");
         _gyroLogYaw = 0f;
         _gyroLogPitch = 0f;
     }
