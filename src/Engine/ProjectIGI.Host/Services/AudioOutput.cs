@@ -27,6 +27,14 @@ internal sealed class AudioOutput(
     // When the score's fade was last advanced, as a stopwatch timestamp.
     private long _timestamp;
 
+    // The stream queue holds 4 buffers of 3072 frames: 256 ms at 48 kHz. A pump gap wider than that
+    // empties every streaming voice before the next pump; see OpenAlAudioDevice.PumpStream. When the
+    // last pump-gap line was written, and how many wider gaps have been counted, not logged, since —
+    // a hitch storm must not flood logcat with one line per frame. Diagnostics only.
+    private const double StreamQueueMs = 256;
+    private long _lastGapLogTimestamp;
+    private int _suppressedGapLogs;
+
     /// <summary>
     /// What every name game code says resolves to. Built once the script namespace exists, and reloaded per mission
     /// because a mission ships its own <c>sounds/sounds.qvm</c> on top of the shared one.
@@ -136,9 +144,38 @@ internal sealed class AudioOutput(
             ? 0f
             : (float)Stopwatch.GetElapsedTime(_timestamp, now).TotalSeconds;
 
+        // The pump runs once per Advance, so the gap since the last Advance is the inter-pump gap.
+        // Wider than the stream queue, it starves every streaming voice; PumpStream logs what that
+        // does to each one, this logs the gap that caused it. Logged, not fixed, here.
+        double gapMs = _timestamp == 0
+            ? 0
+            : Stopwatch.GetElapsedTime(_timestamp, now).TotalMilliseconds;
+        if (gapMs > StreamQueueMs)
+        {
+            LogPumpGap(gapMs);
+        }
+
         _timestamp = now;
         Music?.Update(delta);
         return delta;
+    }
+
+    /// <summary>Logs a pump gap wider than the stream queue, at most one line a second.</summary>
+    private void LogPumpGap(double gapMs)
+    {
+        long now = Stopwatch.GetTimestamp();
+        if (Stopwatch.GetElapsedTime(_lastGapLogTimestamp, now) < TimeSpan.FromSeconds(1))
+        {
+            _suppressedGapLogs++;
+            return;
+        }
+
+        string suppressed = _suppressedGapLogs > 0
+            ? $" (+{_suppressedGapLogs} further gap(s) over 256 ms in the last second)"
+            : string.Empty;
+        _suppressedGapLogs = 0;
+        _lastGapLogTimestamp = now;
+        logger.Warning("Audio", $"[AudioStarve] pump gap {gapMs:F0} ms exceeds the 256 ms stream queue; streams may starve.{suppressed}");
     }
 
     /// <summary>Stops the score, frees the buffers, and empties the bank down to the menu's sounds.</summary>
