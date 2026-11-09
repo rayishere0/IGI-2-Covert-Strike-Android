@@ -133,6 +133,8 @@ public sealed class HostConsole : IDisposable
             _logger.Information(LogCategory, $"Loaded settings from {_settingsPath}.");
         }
 
+        SettingsLoaded = settingsLoaded;
+
         // After the file, so a saved choice cannot outlive the lock, and before the command line, so a
         // +gfx_preset there is refused like one typed later.
         if (lockedPreset is { } locked)
@@ -360,6 +362,13 @@ public sealed class HostConsole : IDisposable
     /// </para>
     /// </remarks>
     public bool IsolatedFromSavedSettings { get; private set; }
+
+    /// <summary>Gets a value indicating whether a settings file was loaded in <see cref="Start"/>.</summary>
+    /// <remarks>
+    /// False on a first run and on a run isolated from saved settings. GameHost reads it to decide
+    /// whether the hardware tier may pick the starting settings: only when nothing was loaded.
+    /// </remarks>
+    public bool SettingsLoaded { get; private set; }
 
     /// <summary>Writes the settings file, unless this console is isolated from it.</summary>
     /// <returns><see langword="true"/> when it was written.</returns>

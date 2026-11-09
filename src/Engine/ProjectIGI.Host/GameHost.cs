@@ -622,6 +622,27 @@ public sealed partial class GameHost : IDisposable
 
         BindDeviceVariables(state);
 
+        // First run only: no settings.cfg was loaded, so nothing the player chose can be
+        // overwritten. The tier is applied here, not in AndroidHost's pre-renderer block,
+        // because the Vanilla preset the console applies in Start() resets r_scale to 1
+        // after that block ran. By now the settings file, the +statements and the preset
+        // have all had their say -- a +r_scale on the command line makes that CVar
+        // non-default and the tier skips it -- and the WhenChanged handlers
+        // BindDeviceVariables wired are in place, so the new values take effect before
+        // ShowWindow and the first frame.
+        if (state.Console is { SettingsLoaded: false })
+        {
+            HardwareTiering.Apply(_options.HardwareTier, _window);
+            _logger.Information(
+                "Config",
+                $"Hardware tier {_options.HardwareTier} applied for a first run: "
+                    + $"r_scale={ReconstructionCVars.RenderScale.Value:0.###}, "
+                    + $"r_texture_quality={MaterialCVars.TextureQuality.Value}, "
+                    + $"r_view_distance={ReconstructionCVars.ViewDistance.Value:0.###}, "
+                    + $"r_dynamic_resolution={ReconstructionCVars.DynamicResolution.Value}, "
+                    + $"r_dynamic_target_fps={ReconstructionCVars.DynamicTargetFps.Value}.");
+        }
+
         CreateClocksAndLighting(state);
 
         // The audio device, collected here: this is the first line that reads it, and everything between

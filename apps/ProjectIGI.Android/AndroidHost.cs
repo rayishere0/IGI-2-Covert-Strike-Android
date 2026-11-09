@@ -165,15 +165,11 @@ public static class AndroidHost
                 FrameCVars.MissionWarmUp.Value = 25;
                 DisplayCVars.Renderer.Value = RendererBackend.Vulkan;
 
-                // Uncapped by default: the 30 fps cap's fixed 33.3 ms cadence stuttered against the
-                // display's vsync grid, so a fresh install runs as fast as the device goes.
-                ReconstructionCVars.FrameLimit.Value = 0;
-
-                // Phones render far below native by default: a full-resolution 2400x1080
-                // frame is too much for a mid-range mobile GPU through WebGPU (10-20 fps).
-                // 720p-equivalent, upscaled by the temporal upscaler, is the performance tier;
-                // the 540p ultra tier is one tap away in Settings for low-end devices.
-                _window?.RenderScaleMode = 1;
+                // The render scale and frame cap used to be forced here (720p, uncapped), but
+                // the Vanilla preset above already reset r_scale to 1 afterwards, so a fresh
+                // install actually started at native. The hardware tier owns both now: GameHost
+                // applies it after the console has loaded settings, and only when no settings
+                // file exists.
             }
 
             // Show the tier actually being rendered (the r_scale loaded from settings), so
@@ -229,6 +225,13 @@ public static class AndroidHost
                 (rhiDevice, chosenBackend) = CreateVulkanRhi(nativeWindow, landscapeWidth, landscapeHeight);
             }
 
+            // The adapter name is the only GPU identity that reaches the app layer
+            // (IRhiDevice exposes the name string, not the vendor id or API version), so the
+            // hardware tier is classified from it here and handed to GameHost, which applies
+            // it on a first run only -- after the console has loaded settings, never here.
+            HardwareTier tier = HardwareTiering.Classify(rhiDevice.AdapterName, rhiDevice.ApiName);
+            _logger.Information("AndroidHost", $"Hardware tier: {tier} ({rhiDevice.AdapterName}): {HardwareTiering.Describe(tier)}.");
+
             _device = new ProjectIGI.Rendering.Pipeline.GraphicsDevice(
                 rhiDevice,
                 new DisplayMode(landscapeWidth, landscapeHeight, 32, 60),
@@ -266,7 +269,7 @@ public static class AndroidHost
                     TitleCatalog.Rooted(runtime, dataDir),
                     runtime.Title,
                     fileSystem,
-                    options with { Renderer = chosenBackend, FirstRunPreset = GraphicsPreset.Vanilla, VanillaMenu = true },
+                    options with { Renderer = chosenBackend, FirstRunPreset = GraphicsPreset.Vanilla, VanillaMenu = true, HardwareTier = tier },
                     dataDir,
                     _logger);
 
