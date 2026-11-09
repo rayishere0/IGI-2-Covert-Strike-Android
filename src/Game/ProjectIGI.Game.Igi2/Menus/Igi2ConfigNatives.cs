@@ -491,18 +491,21 @@ public sealed class Igi2ConfigNatives : IMenuConfiguration, IMenuMissionStats
         gfx.TerrainDetail = row.TerrainDetail;
     }
 
-    /// <summary>Walks the campaign, one entry per mission, marking the ones past the frontier locked.</summary>
+    /// <summary>Walks the campaign, one entry per unlocked mission; locked missions are not listed at all.</summary>
     /// <remarks>
     /// Project I.G.I.'s <c>Config_FillMissionSelectionBox</c> (<c>0x405660</c>) walks the mission chain
     /// from the first id, adding each mission's name keyed by its id, and stops after the one the
     /// profile has reached — which is what keeps a fresh profile from starting mission 14. The whole
-    /// campaign is listed here instead, with the ones past the frontier unpickable, which says the
-    /// same thing in the open: the missions are there, and the game decides which may be played. A
-    /// profile that has reached nothing (active mission zero) counts as standing on the
+    /// campaign used to be listed here instead, with the ones past the frontier unpickable; now the
+    /// ones past the frontier are left out entirely, so a locked mission cannot be seen, picked, or
+    /// tapped. A profile that has reached nothing (active mission zero) counts as standing on the
     /// first mission — without that the frontier is no mission at all, and the whole campaign lists
-    /// unlocked, which is how every mission came to be playable from a fresh install. Retail shows
-    /// plain names for every row, so no suffix marks the locked ones: lock enforcement is the
-    /// item's <c>Enabled</c> flag, which the list's selection and tap paths check, not the label.
+    /// unlocked, which is how every mission came to be playable from a fresh install. Hiding is
+    /// presentation only: <see cref="IsUnlocked"/> still guards starting a mission, and the
+    /// ExternalNatives refusal in the retail menus still answers a scripted id, so nothing about
+    /// the lock itself changes. Each row still carries its real mission id, not its position in
+    /// this shorter list, so focus (OnFocusItem) and the stats box, which are both keyed by id,
+    /// keep working with fewer rows than missions.
     /// </remarks>
     private IEnumerable<MenuListItem> GetMissions(int reached)
     {
@@ -511,13 +514,18 @@ public sealed class Igi2ConfigNatives : IMenuConfiguration, IMenuMissionStats
         foreach (MissionDescriptor mission in Chain())
         {
             bool unlocked = PlayerCheatCVars.UnlockAllLevels.Value || index <= frontier;
+            index++;
+            if (!unlocked)
+            {
+                continue;
+            }
+
             // The corrected name where one is listed, so the list and the stats box
             // never disagree about what a mission is called.
             string displayName = TryGetCorrectedText(mission.Id, out string correctedName, out _)
                 ? correctedName
                 : Localise(mission.Name);
-            yield return new MenuListItem(mission.Id, displayName, unlocked);
-            index++;
+            yield return new MenuListItem(mission.Id, displayName);
         }
     }
 
