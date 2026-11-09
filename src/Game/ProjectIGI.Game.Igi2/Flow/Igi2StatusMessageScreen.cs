@@ -69,6 +69,12 @@ public sealed class Igi2StatusMessageScreen
     /// <summary>Gets or sets a value indicating whether the game is paused, which holds every line as it is.</summary>
     public bool IsPaused { get; set; }
 
+    /// <summary>
+    /// Gets or sets how far a cutscene line's done-count moves per tick: the cutscene clock's advance while one
+    /// runs, one otherwise, so a cutscene's lines stay with its camera rather than the level's tick.
+    /// </summary>
+    public int CutsceneTickAdvance { get; set; } = 1;
+
     /// <summary>Registers a message into the first free place.</summary>
     /// <param name="message">The message, whose current text is the line.</param>
     /// <returns>The place, or <c>-1</c> with all twenty-four taken.</returns>
@@ -125,12 +131,12 @@ public sealed class Igi2StatusMessageScreen
         {
             if (slot.IsUsed)
             {
-                Update(slot);
+                Update(slot, CutsceneTickAdvance);
             }
         }
     }
 
-    private static void Update(Igi2StatusMessageSlot slot)
+    private static void Update(Igi2StatusMessageSlot slot, int cutsceneTickAdvance)
     {
         if (slot.Message is not { } message)
         {
@@ -142,8 +148,10 @@ public sealed class Igi2StatusMessageScreen
             // Laid out whole on its first tick (StatusMessageScreen_FormatMessageText, not ported), and done from then on.
             // Whole means visible at once: the fade-in below is the box opening of an ordinary line, and a cutscene's has
             // none, so it stands at full strength from its first tick rather than drawing at an alpha of nought.
+            // Done by the cutscene's clock, not the level's: after a stall the camera's clock runs ahead, and the line
+            // must finish with the camera, not a tick behind it.
             slot.Fade = 1f;
-            slot.DoneTicks++;
+            slot.DoneTicks += cutsceneTickAdvance;
         }
         else if (slot.Age >= PrintStart)
         {

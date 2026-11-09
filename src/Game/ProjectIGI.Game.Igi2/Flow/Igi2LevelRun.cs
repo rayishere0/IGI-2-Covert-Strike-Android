@@ -74,6 +74,27 @@ public sealed class Igi2LevelRun : LevelRun, IConditionalContainerRules
     /// <summary>Gets a value indicating whether a cutscene ran this tick, <c>CutScene_isRunning</c>.</summary>
     public bool IsCutsceneRunning { get; private set; }
 
+    /// <summary>Gets a value indicating whether a cutscene ran the tick before this one.</summary>
+    /// <remarks>
+    /// The tree runs its tasks in order, so a task that runs before the cutscene's own cannot see this tick's flag
+    /// yet; the last tick's is the one it can trust. Together they say a cutscene is running for anything that
+    /// must hold still while one plays.
+    /// </remarks>
+    public bool CutsceneRanLastTick { get; private set; }
+
+    /// <summary>Gets the clock of the cutscene that placed this tick's view, in ticks.</summary>
+    /// <remarks>For the subtitles and the band filter to count by, rather than the level's tick.</remarks>
+    public int CutsceneTick { get; private set; }
+
+    /// <summary>Gets how far the cutscene's clock moved for the view this tick placed, in ticks.</summary>
+    /// <remarks>One a tick where no cutscene placed a view; the subtitles count by it.</remarks>
+    public int CutsceneTickAdvance { get; private set; } = 1;
+
+    // The cutscene the clock above belongs to, and where its clock stood when it last placed a view: the advance
+    // is only meaningful within one cutscene, so a new one -- or one wound back to its start -- counts from one.
+    private Igi2CutSceneTask? _cutsceneTickOwner;
+    private int _lastCutsceneTick;
+
     /// <summary>Gets or sets a value indicating whether the cutscene break key is down, as <c>LevelFlow_GetBreakCutSceneKey</c> reads it.</summary>
     public bool IsBreakKeyDown { get; set; }
 
@@ -87,6 +108,20 @@ public sealed class Igi2LevelRun : LevelRun, IConditionalContainerRules
 
     /// <summary>Notes that a cutscene ran this tick (<c>CutScene_isRunning |= isRun</c>).</summary>
     public void MarkCutsceneRunning() => IsCutsceneRunning = true;
+
+    /// <summary>Notes the clock of the cutscene that placed this tick's view.</summary>
+    /// <param name="cutscene">The cutscene that placed the view.</param>
+    /// <param name="tick">Its clock, in ticks.</param>
+    public void SetCutsceneTick(Igi2CutSceneTask cutscene, int tick)
+    {
+        ArgumentNullException.ThrowIfNull(cutscene);
+        CutsceneTickAdvance = !ReferenceEquals(_cutsceneTickOwner, cutscene) || tick <= _lastCutsceneTick
+            ? 1
+            : tick - _lastCutsceneTick;
+        _cutsceneTickOwner = cutscene;
+        _lastCutsceneTick = tick;
+        CutsceneTick = tick;
+    }
 
     /// <summary>Gets the camera the last cutscene to place one set this tick, or <see langword="null"/> when none did.</summary>
     /// <remarks>Its <c>QCamera_Set</c> is at a priority of 1000, over the player's 300, so it is what the level shows.</remarks>
@@ -105,6 +140,7 @@ public sealed class Igi2LevelRun : LevelRun, IConditionalContainerRules
     /// <summary>Runs one tick from the root.</summary>
     public void Tick()
     {
+        CutsceneRanLastTick = IsCutsceneRunning;
         IsCutsceneRunning = false;
         CutsceneView = null;
         Run(Root);
@@ -119,6 +155,7 @@ public sealed class Igi2LevelRun : LevelRun, IConditionalContainerRules
         Dynamic?.Run();
         RunDelayed();
         CountTick();
+        CutsceneRanLastTick = IsCutsceneRunning;
         IsCutsceneRunning = false;
         CutsceneView = null;
     }

@@ -227,7 +227,9 @@ public sealed partial class Igi2HudRenderer
     // time it flares again to a random share of the camera's noise and waits a random part of its loop.
     private void RunBand(Igi2TitlePlayer title, Igi2CutsceneView view)
     {
-        int tick = title.Level?.LevelFlow?.Tick ?? 0;
+        // The cutscene's own clock, not the level's: after a stall the camera's clock runs ahead of the level tick
+        // while it catches up, and the band rolls with the camera, not behind it.
+        int tick = title.Level is { IsCutsceneRunning: true } level ? level.CutsceneTick : title.Level?.LevelFlow?.Tick ?? 0;
         if (view.IsCameraJustChanged || _bandTick < 0 || tick < _bandTick)
         {
             _bandNoise = 0f;

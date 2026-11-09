@@ -97,15 +97,26 @@ public sealed partial class GameHost
         // camera and its parent vehicle stay on the current record makes a seated actor sweep
         // backwards after every tick, then glide forwards again. Retail presents the cinematic
         // transform set atomically, so keep the actor on that same current tick as its plane/train.
+        // A title cutscene -- I.G.I. 2's, whose MissionState.Cutscenes is never assigned -- suppresses smooth
+        // presentation for the world, as a cutscene of the first game's does: its actors, effects and particles
+        // stay on the tick the cutscene placed, the cinematic transform set atomically. The title camera's own
+        // blend below is not part of that gate: it still sweeps between the cutscene's ticks, or the camera
+        // would stay a 30 Hz staircase while the extra renders r_smooth already runs went to waste.
+        bool titleCutscene = TitlePlayer is { IsCutscenePlaying: true };
         bool smoothPresentation = !_menuFlow.PauseMenu
             && _mission.Cutscenes?.IsPlaying != true
+            && !titleCutscene
             && (!_options.Lockstep || _options.CaptureRate > _loop.Clock.TickRate)
             && FrameCVars.SmoothPresentation.Value;
         double pacingWall = _loop.Clock.FrameInstantMilliseconds;
         float tickBlend = smoothPresentation
             ? _loop.Clock.TickFraction(pacingWall)
             : 1f;
-        _titlePresentationBlend = TitlePlayer is { IsCutscenePlaying: true } ? 1f : tickBlend;
+        _titlePresentationBlend = !_menuFlow.PauseMenu
+            && (!_options.Lockstep || _options.CaptureRate > _loop.Clock.TickRate)
+            && FrameCVars.SmoothPresentation.Value
+            ? _loop.Clock.TickFraction(pacingWall)
+            : 1f;
         PresentTitleLook(smoothPresentation && !console.WantsPointer);
 
         // Whether the picture's own clock keeps step with the wall clock, behind
@@ -115,7 +126,7 @@ public sealed partial class GameHost
             pacingWall, _loop.Clock.TickCount, tickBlend, _loop.Clock.TickRate, smoothPresentation);
         _pacing.SampleGate(
             _menuFlow.PauseMenu,
-            _mission.Cutscenes?.IsPlaying == true,
+            _mission.Cutscenes?.IsPlaying == true || titleCutscene,
             _options.Lockstep,
             FrameCVars.SmoothPresentation.Value);
         if (_loop.Clock.FrameCount % 600 == 0)
@@ -408,6 +419,7 @@ public sealed partial class GameHost
                         && !_computerOpen
                         && !_entry.IsCameraActive
                         && _mission.Cutscenes?.IsPlaying != true
+                        && TitlePlayer is not { IsCutscenePlaying: true }
                         && mapScene is null
                         && !_menuFlow.OverShowcase,
                     Paused: _menuFlow.MenuMode,
@@ -432,6 +444,7 @@ public sealed partial class GameHost
             && !_computerOpen
             && !_entry.IsCameraActive
             && _mission.Cutscenes?.IsPlaying != true
+            && TitlePlayer is not { IsCutscenePlaying: true }
             && mapScene is null
             && !_menuFlow.OverShowcase
             && Viewpoint?.HasPlayer == true;

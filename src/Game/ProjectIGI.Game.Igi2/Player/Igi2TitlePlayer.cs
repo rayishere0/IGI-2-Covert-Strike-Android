@@ -578,6 +578,7 @@ public sealed partial class Igi2TitlePlayer : ITitlePlayer, ITitleFirstPerson, I
 
             // The glass container is the level's last child, made as the first pane was: its panes' glass tick follows the level's.
             Glass.Run();
+            StatusMessages.CutsceneTickAdvance = level.IsCutsceneRunning ? level.CutsceneTickAdvance : 1;
             StatusMessages.Run();
         }
         else
@@ -587,6 +588,7 @@ public sealed partial class Igi2TitlePlayer : ITitlePlayer, ITitleFirstPerson, I
             RunPlayerDelayed();
 
             // Standing in another game's level, the player's own screen prints what is said to it.
+            StatusMessages.CutsceneTickAdvance = 1;
             StatusMessages.Run();
         }
 

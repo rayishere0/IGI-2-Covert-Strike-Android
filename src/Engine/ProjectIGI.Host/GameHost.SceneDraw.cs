@@ -432,7 +432,10 @@ public sealed partial class GameHost
         _effects.Draw(eye, projection, smoothPresentation ? tickBlend : 1f);
 
         // And another game's 2-D particles -- its blood, its smoke -- in the engine both titles share, with that game's sprites.
-        DrawTitleParticles(eye, projection, smoothPresentation ? tickBlend : 1f);
+        // A title cutscene's particles stay on the tick, as its actors do: blending them between ticks while the
+        // camera and the actors sit on one is what let an explosion glide across a held frame.
+        float titleParticleBlend = TitlePlayer is { IsCutscenePlaying: true } ? 1f : smoothPresentation ? tickBlend : 1f;
+        DrawTitleParticles(eye, projection, titleParticleBlend);
         foreach (ITaskPresenter particlePresenter in _taskPresenters)
         {
             particlePresenter.DrawParticles(eye, projection, smoothPresentation ? tickBlend : 1f);

@@ -134,7 +134,7 @@ public sealed partial class Igi2HumanSoldierTask : Igi2Task, IIgi2PlacedTask, IW
         ArgumentNullException.ThrowIfNull(level);
         if (Body is { } body)
         {
-            level.Delay(body.RunDelayed);
+            level.Delay(() => body.RunDelayed(level));
         }
     }
 }
@@ -284,7 +284,14 @@ public sealed partial class Igi2AiSquadTask : Igi2Task
     public override void Run(Igi2LevelRun level)
     {
         ArgumentNullException.ThrowIfNull(level);
-        Squad?.Run();
+
+        // A cutscene holds the squad: no new orders, no target lists, no events while one plays. Its soldiers'
+        // children still run, and their minds are held at the body's delayed pass.
+        if (!level.IsCutsceneRunning && !level.CutsceneRanLastTick)
+        {
+            Squad?.Run();
+        }
+
         level.RunChildren(this);
     }
 

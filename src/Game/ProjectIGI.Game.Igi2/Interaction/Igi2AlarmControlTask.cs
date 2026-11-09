@@ -253,6 +253,13 @@ public sealed partial class Igi2AlarmControlTask
     // AlarmControl_RunHandler (igi2 0x4D0320): each script's value chopped and taken as a signed byte.
     private void RunAlarm(Igi2LevelRun level)
     {
+        // A cutscene holds the alarm: it neither trips nor sounds while one plays, and raises no alarm event to
+        // the teams. The terminal's own tick above still runs.
+        if (level.IsCutsceneRunning || level.CutsceneRanLastTick)
+        {
+            return;
+        }
+
         int wasAlarm = _isAlarm;
         _isLastAlarm = wasAlarm;
         if (Explosive.IsExploded || !Terminal.IsActive)
