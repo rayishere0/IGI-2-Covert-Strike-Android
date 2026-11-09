@@ -169,12 +169,22 @@ internal sealed class WorldFrameState
             // never change the model, so they are applied over the displayed placement cached above.
             entry.Displayed = _transforms.ApplyLiveTransforms(authored, entry.Displayed!);
 
+            // Whether the live transforms moved this placement away from where the level placed it:
+            // a spline-guided prop's rotor only turns while its owner is actually travelling. A
+            // centimetre of slack covers the float round-trip of the mover interpolation, which never
+            // returns a stayed placement bit-identical.
+            Vector3d displayDelta = entry.Displayed!.Position - authored.Position;
+            bool ownerMoved = (displayDelta.X * displayDelta.X)
+                + (displayDelta.Y * displayDelta.Y)
+                + (displayDelta.Z * displayDelta.Z) > 0.0001;
+
             _transforms.ResolveDrawTransform(
                 entry.Displayed!,
                 out entry.Position,
                 out entry.Orientation,
                 out entry.Rotor,
-                out entry.HasRotor);
+                out entry.HasRotor,
+                ownerMoved);
 
             // Anything drawn away from where it was placed is a mover -- a vehicle, a door, a fan, a camera
             // head -- and stays one, so the frame it comes to rest on is paired against the one before.

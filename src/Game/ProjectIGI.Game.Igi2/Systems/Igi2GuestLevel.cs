@@ -634,7 +634,7 @@ public sealed class Igi2GuestLevel
             alarm.AiEvents = e => ai.SendEvent(e);
         }
 
-        Igi2LevelRun run = new(Root, loop.Natives, functions) { Dynamic = dynamic };
+        Igi2LevelRun run = new(Root, loop.Natives, functions) { Dynamic = dynamic, Logger = start.Logger };
 
         // The soldiers see the player as I.G.I. 2 sees its own, not at their cones' full length -- from their first look.
         // The level's own player measures its own (Igi2HumanPlayer), as I.G.I. 2's does.

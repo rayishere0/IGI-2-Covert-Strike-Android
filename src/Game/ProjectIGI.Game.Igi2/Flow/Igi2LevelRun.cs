@@ -1,3 +1,4 @@
+using ProjectIGI.Core.Diagnostics;
 using ProjectIGI.Engine.Tasks;
 using ProjectIGI.Game.Level;
 using ProjectIGI.Game.World;
@@ -36,6 +37,13 @@ public sealed class Igi2LevelRun : LevelRun, IConditionalContainerRules
 
     // A conditional container's scripts, each compiled the first time it runs.
     private readonly Dictionary<(GameTask Owner, string Source), LevelExpression> _containerScripts = [];
+
+    /// <summary>Gets or sets what the level's tasks log through, or <see langword="null"/> when none was given.</summary>
+    /// <remarks>
+    /// The cutscene's own clock line goes through this: a task is made by the level loader, which hands
+    /// it no logger, so the run carries the one the host gave the level.
+    /// </remarks>
+    public IProjectIGILogger? Logger { get; set; }
 
     /// <summary>Gets or sets the monotonic wall clock the level's time-based tasks read, in milliseconds.</summary>
     /// <remarks>

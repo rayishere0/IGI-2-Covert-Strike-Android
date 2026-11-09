@@ -22,6 +22,18 @@ internal sealed class CutsceneVehicleDraw(
     private readonly CutsceneVehicleBodies _bodies = bodies;
     private readonly CutsceneVehicleArmament _armament = armament;
 
+    // I.G.I. 2 never registers a VehiclePhysicsRegistry -- its content module provides none -- so a
+    // rotor there has no retail record to read. These are presentation values only: six blur copies
+    // twenty degrees apart, a gentle flap limit. Any registered record wins over them; a tail rotor
+    // read through this fallback still spins as a main disc, which a blur hides.
+    private static readonly RotorPhysicsDefinition FallbackRotor = new(
+        ProducesLift: true,
+        IsTailRotor: false,
+        BladeSamples: 6,
+        MaximumTilt: 0.15f,
+        PhaseStep: 0.35f,
+        Sound: string.Empty);
+
     /// <summary>Resolves an animation-driven task transform in render units.</summary>
     public bool TryGetDrawTransform(GameTask task, out Vector3d position, out Matrix3f orientation)
     {
@@ -127,7 +139,7 @@ internal sealed class CutsceneVehicleDraw(
         out Vector3d position,
         out Matrix3f orientation)
     {
-        if (TryGetRotorDrawState(placement, out RotorDrawState rotorDraw))
+        if (TryGetRotorDrawState(placement, ownerMoved: false, out RotorDrawState rotorDraw))
         {
             position = rotorDraw.Position;
             orientation = rotorDraw.GetOrientation(0);
@@ -216,20 +228,40 @@ internal sealed class CutsceneVehicleDraw(
     }
 
     /// <summary>Builds the repeated orientations emitted by retail <c>RotorPrimitive::Draw</c>.</summary>
-    public bool TryGetRotorDrawState(WorldPlacement placement, out RotorDrawState draw)
+    /// <param name="placement">The rotor placement, as the frame shows it.</param>
+    /// <param name="ownerMoved">
+    /// Whether the live transforms moved the placement away from where the level placed it: a spline-guided
+    /// prop's rotor only turns while its owner is actually travelling, so a parked prop keeps still blades.
+    /// </param>
+    public bool TryGetRotorDrawState(WorldPlacement placement, bool ownerMoved, out RotorDrawState draw)
     {
         if (!placement.IsRotor
-            || _context.VehiclePhysics?.TryGetRotor(placement.Instance.Name, out RotorPhysicsDefinition rotor) != true
-            || !_context.TaskTransforms.TryGetValue(placement.Owner, out CutsceneTransformState? state)
-            || !TryGetPlacementDrawTransform(
-                placement.Owner,
-                placement.Position,
-                placement.Orientation,
-                out Vector3d position,
-                out Matrix3f baseOrientation))
+            || !_context.TaskTransforms.TryGetValue(placement.Owner, out CutsceneTransformState? state))
         {
             draw = default;
             return false;
+        }
+
+        // No record where none was registered (I.G.I. 2): fall back to the presentation record
+        // above instead of leaving the rotor a single frozen blade.
+        if (_context.VehiclePhysics?.TryGetRotor(placement.Instance.Name, out RotorPhysicsDefinition rotor) != true)
+        {
+            rotor = FallbackRotor;
+        }
+
+        if (!TryGetPlacementDrawTransform(
+            placement.Owner,
+            placement.Position,
+            placement.Orientation,
+            out Vector3d position,
+            out Matrix3f baseOrientation))
+        {
+            // A spline-guided prop (I.G.I. 2's helicopter) is never driven by this runtime, so its
+            // owner transform never becomes dynamic and the call above refuses it. The placement the
+            // frame hands in already carries the prop's live pose -- its mover interpolated it -- so
+            // the rotor is drawn on that pose as-is.
+            position = placement.Position;
+            baseOrientation = placement.Orientation;
         }
 
         // Rotor::Tick (0x42D440) advances its private phase by
@@ -245,6 +277,14 @@ internal sealed class CutsceneVehicleDraw(
         float visualCollective = previewOnly && state.OriginalThrust > 0f
             ? Math.Clamp(state.OriginalThrust, 0f, 1f)
             : state.Thrust;
+
+        // A prop rotor has no authored collective at all: its spin is its owner's motion. When the
+        // owner has actually moved away from where the level placed it, run the preview disc at
+        // full collective; a prop that never moved keeps its blades still.
+        if (previewOnly && visualCollective <= 0f && ownerMoved)
+        {
+            visualCollective = 1f;
+        }
         float firstAngle;
         if (previewOnly && visualCollective > 0f)
         {

@@ -114,7 +114,8 @@ public static class Igi2DrawableScene
             int variant,
             int depth,
             Igi2VisibilityKey? key,
-            ref int index)
+            ref int index,
+            bool isRotor = false)
         {
             if (!table.TryResolveMesh(modelName, out string? mesh)
                 || !TryFind(packs, mesh, out LoadedPack? pack, out MefModel? model)
@@ -189,6 +190,11 @@ public static class Igi2DrawableScene
                 LevelLightmapEntries = levelEntries,
                 BentGeometry = bent,
                 LevelId = placementId,
+
+                // Whether this attachment is a retail TASKTYPE_ROTOR object, as the attachment's
+                // emission below decides: only then does the renderer draw its rotor blur, instead
+                // of the single frozen blade an unflagged rotor gets.
+                IsRotor = isRotor,
 
                 // The queue this object is drawn in. Every I.G.I. 2 level authors it, and it is what
                 // separates a decal or a pane of glass from the geometry it has to come after.
@@ -277,6 +283,13 @@ public static class Igi2DrawableScene
                 }
 
                 bool carries = depth == 0 && placementMountedOn.Length > 0 && magic?.Find(attachment.Name)?.TaskType == placementMountedOn;
+
+                // A rotor is an attachment the magic table made as TASKTYPE_ROTOR, or -- when the
+                // table does not say so -- one wearing a known retail rotor model. Either way it is
+                // flagged here, because nothing later in the pipeline can tell a rotor from any
+                // other rigid attachment, and an unflagged rotor draws as one frozen blade.
+                bool isRotor = string.Equals(magic?.Find(attachment.Name)?.TaskType, "TASKTYPE_ROTOR", StringComparison.Ordinal)
+                    || HelicopterRotorCatalog.IsKnownRotorModel(attachedModel);
                 if (Emit(
                     attachedModel,
                     attachedPose,
@@ -286,7 +299,8 @@ public static class Igi2DrawableScene
                     variant,
                     depth + 1,
                     attachedKey,
-                    ref index))
+                    ref index,
+                    isRotor: isRotor))
                 {
                     attached++;
 
