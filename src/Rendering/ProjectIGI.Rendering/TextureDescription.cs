@@ -36,6 +36,48 @@ public readonly record struct TextureDescription(
     /// </remarks>
     public bool HoldsData { get; init; }
 
+    /// <summary>Gets a value indicating whether the texture is a single panel or sign that must never wrap.</summary>
+    /// <remarks>
+    /// World textures repeat by design - the ground, every wall, every crate tiles - so the caches
+    /// ask for <see cref="TextureAddressMode.Repeat"/> for all of them. A sign is authored as one
+    /// rectangular graphic, and a repeating sampler shows it twice across its panel. Flagging it here
+    /// makes the texture table clamp it instead; see <see cref="IsNonTilingName"/>.
+    /// </remarks>
+    public bool IsNonTiling { get; init; }
+
+    /// <summary>Whether a texture name is a single-panel sign or banner that must never wrap.</summary>
+    /// <param name="name">The texture's name, bare or qualified.</param>
+    /// <returns><see langword="true"/> when the name is a sign or banner panel.</returns>
+    /// <remarks>
+    /// The banner has no creation site of its own: world textures all load through the same caches,
+    /// so the name is the only place the panel can be recognised. "priboi" is the warehouse the
+    /// mission 13 sign belongs to; "banner" is a panel by definition; "sign" only as a whole token,
+    /// so "design" and "signal" keep tiling.
+    /// </remarks>
+    public static bool IsNonTilingName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return false;
+        }
+
+        if (name.Contains("priboi", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("banner", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        foreach (string token in name.Split('_', '-', '.', ' ', '/'))
+        {
+            if (token.Equals("sign", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Gets the number of pixels in mip level 0.</summary>
     public int PixelCount => Width * Height;
 
