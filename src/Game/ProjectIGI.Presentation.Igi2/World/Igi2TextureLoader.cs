@@ -173,7 +173,10 @@ public sealed class Igi2TextureLoader
                     image.Height,
                     image.MipLevels,
                     TextureFilter.Linear,
-                    TextureAddressMode.Repeat),
+                    TextureAddressMode.Repeat)
+                {
+                    IsNonTiling = TextureDescription.IsNonTilingName(name),
+                },
                 image.Pixels);
         }
         catch (Exception ex) when (ex is PackFormatException or TextureFormatException)

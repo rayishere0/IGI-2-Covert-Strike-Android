@@ -190,7 +190,10 @@ internal sealed class WorldTextureCache
     {
         TextureImage? proxy = image.Proxy;
         TextureHandle handle = _device.CreateCompressedTexture(
-            new TextureDescription(image.Width, image.Height, image.MipLevels, TextureFilter.Linear, TextureAddressMode.Repeat),
+            new TextureDescription(image.Width, image.Height, image.MipLevels, TextureFilter.Linear, TextureAddressMode.Repeat)
+            {
+                IsNonTiling = TextureDescription.IsNonTilingName(name),
+            },
             image.Format,
             image.Levels.Span,
             proxy is null ? default : proxy.GetLevel(0),
@@ -221,7 +224,10 @@ internal sealed class WorldTextureCache
     private TextureHandle CreateFromDecoded(string name, TextureImage image, TextureImage? detail = null)
     {
         TextureHandle handle = _device.CreateTexture(
-            new TextureDescription(image.Width, image.Height, image.MipLevels, TextureFilter.Linear, TextureAddressMode.Repeat),
+            new TextureDescription(image.Width, image.Height, image.MipLevels, TextureFilter.Linear, TextureAddressMode.Repeat)
+            {
+                IsNonTiling = TextureDescription.IsNonTilingName(name),
+            },
             image.Pixels);
 
         // The derived normal, roughness and occlusion this game never shipped. Registered against the

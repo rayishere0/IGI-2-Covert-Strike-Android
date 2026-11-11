@@ -422,7 +422,14 @@ public sealed class TextureTable : ITextureBindingSource, IDisposable
     {
         RhiFilter filter = description.Filter is TextureFilter.Point ? RhiFilter.Nearest : RhiFilter.Linear;
 
-        RhiAddressMode address = description.AddressMode is TextureAddressMode.Repeat
+        // Signs and banners are authored as one rectangular graphic. If the caller flags the texture
+        // as non-tiling, force clamp even when the texture metadata says Repeat - a repeating sampler
+        // shows the panel twice across its face.
+        TextureAddressMode addressMode = description.IsNonTiling
+            ? TextureAddressMode.Clamp
+            : description.AddressMode;
+
+        RhiAddressMode address = addressMode is TextureAddressMode.Repeat
             ? RhiAddressMode.Repeat
             : RhiAddressMode.ClampToEdge;
 
