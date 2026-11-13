@@ -559,7 +559,12 @@ public sealed class DeveloperConsole : IDisposable
         // composing a command. Escape and Return both hand the keyboard back to the prompt.
         if (_panels.FindFocused && _panels.Body is { } body)
         {
-            if (keyboard.WasPressed(KeyCode.Return) || keyboard.WasPressed(KeyCode.NumpadEnter))
+            // Both reads are evaluated eagerly: a queued Return must be consumed even
+            // when the level edge already fired, or it would submit the prompt on the
+            // next frame instead.
+            bool findReturnPressed = keyboard.WasPressed(KeyCode.Return) || keyboard.WasPressed(KeyCode.NumpadEnter);
+            bool findReturnQueued = keyboard.TryDequeueReturnPress(out _);
+            if (findReturnPressed || findReturnQueued)
             {
                 _panels.FindFocused = false;
                 return;
@@ -573,7 +578,9 @@ public sealed class DeveloperConsole : IDisposable
             return;
         }
 
-        if (keyboard.WasPressed(KeyCode.Return) || keyboard.WasPressed(KeyCode.NumpadEnter))
+        bool returnPressed = keyboard.WasPressed(KeyCode.Return) || keyboard.WasPressed(KeyCode.NumpadEnter);
+        bool returnQueued = keyboard.TryDequeueReturnPress(out _);
+        if (returnPressed || returnQueued)
         {
             if (_model.SuggestionIndex >= 0)
             {

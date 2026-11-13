@@ -38,6 +38,7 @@ namespace ProjectIGI.Host.Menu;
 /// <param name="setRenderScale">Sets current render scale mode.</param>
 /// <param name="getTouchSensitivity">Gets current touch sensitivity.</param>
 /// <param name="setTouchSensitivity">Sets current touch sensitivity.</param>
+/// <param name="openConsole">Resumes the mission and opens the developer console over it.</param>
 public sealed class ShellHost(
     Action<int, int> startMission,
     Action<MissionConditions> setMissionConditions,
@@ -65,7 +66,8 @@ public sealed class ShellHost(
     Action<float>? setTouchSensitivity = null,
     Func<IReadOnlyList<ProjectIGI.Game.Player.LoadGameSave>>? loadGameSaves = null,
     Func<int, int, bool>? loadSave = null,
-    MissionThumbnailCapture? missionThumbnail = null) : IShellHost
+    MissionThumbnailCapture? missionThumbnail = null,
+    Action? openConsole = null) : IShellHost
 {
     /// <inheritdoc/>
     public void CustomizeTouchControls() => customizeTouchControls?.Invoke();
@@ -123,6 +125,9 @@ public sealed class ShellHost(
 
     /// <inheritdoc/>
     public void ResumeMission() => resumeMission();
+
+    /// <inheritdoc/>
+    public void OpenConsole() => openConsole?.Invoke();
 
     /// <inheritdoc/>
     public void RestartMission() => restartMission();

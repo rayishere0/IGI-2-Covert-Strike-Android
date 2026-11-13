@@ -653,6 +653,18 @@ public sealed partial class GameHost
                     _menuFlow.PauseMenu = false;
                     _window.CursorVisible = false;
                 },
+                openConsole: () =>
+                {
+                    // Resume first, then open: the console must land over a running mission,
+                    // never over a paused one that never resumes. The same put-away as
+                    // resumeMission, plus the open state the Grave key flips; the next frame
+                    // the console reads the input first and the IME follows it.
+                    state.Shell?.ClosePauseMenu();
+                    _menuFlow.MenuMode = false;
+                    _menuFlow.PauseMenu = false;
+                    _window.CursorVisible = false;
+                    state.Console.Model.IsOpen = true;
+                },
                 restartMission: () =>
                 {
                     int missionId = _session.Mission?.Id ?? _loadingMission?.Id ?? 1;

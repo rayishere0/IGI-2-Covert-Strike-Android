@@ -72,6 +72,16 @@ public interface IShellHost
     /// <summary>Enters the interactive drag-and-drop HUD on-screen controls customizer.</summary>
     void CustomizeTouchControls() { }
 
+    /// <summary>Closes the pause menu and opens the developer console over the running mission.</summary>
+    /// <remarks>
+    /// The ordering is the contract: the mission resumes first, then the console opens over
+    /// play — never over a paused mission that never resumes. The console reads the frame's
+    /// input first and marks it captured, so the mission underneath hears no stray keys
+    /// while a command is typed. A host that cannot open a console leaves the default, and
+    /// the pause screen's CONSOLE row does nothing there.
+    /// </remarks>
+    void OpenConsole() { }
+
     /// <summary>Gets or sets the on-screen touch controls opacity.</summary>
     float TouchOpacity { get => 0.75f; set { } }
 
