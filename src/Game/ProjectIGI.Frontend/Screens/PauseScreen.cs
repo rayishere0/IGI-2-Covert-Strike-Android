@@ -10,7 +10,7 @@ namespace ProjectIGI.Frontend.Screens;
 /// <summary>
 /// Authentic Project I.G.I. 1 "Paused" menu:
 /// Centered green wireframe tactical dialog over the suspended mission, offering:
-/// Resume, Restart Mission, Customize Controls, Configuration, and Abort Mission.
+/// Resume, Restart Mission, Customize Controls, Configuration, Console, and Abort Mission.
 /// </summary>
 public sealed class PauseScreen : ShellScreen
 {
@@ -71,6 +71,10 @@ public sealed class PauseScreen : ShellScreen
         var configBtn = new IgiMenuButton(theme, "CONFIGURATION") { TextSize = 34f, Height = 76f, Width = 740f };
         configBtn.Activated += () => Context.Stack.Reset(new SettingsScreen(Context));
         menuStack.AddChild(configBtn);
+
+        var consoleBtn = new IgiMenuButton(theme, "CONSOLE") { TextSize = 34f, Height = 76f, Width = 740f };
+        consoleBtn.Activated += () => Context.Host.OpenConsole();
+        menuStack.AddChild(consoleBtn);
 
         var abortBtn = new IgiMenuButton(theme, "ABORT MISSION")
         {
