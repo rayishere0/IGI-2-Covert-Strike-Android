@@ -371,6 +371,8 @@ public sealed partial class Igi2HumanAi : IIgi2SoldierMind
         PlaceView();
         if (Script is null || Graph is null)
         {
+            // A mind with no script or no graph would stand frozen past here; the fallback steps it instead.
+            RunFallback(soldier, detect);
             return;
         }
 
@@ -409,16 +411,25 @@ public sealed partial class Igi2HumanAi : IIgi2SoldierMind
     }
 
     /// <summary>
-    /// Weighs an event (<c>HumanAI_SendEventHandler</c>): a dead mind, an inactive body, a mind with no script or squad hears nothing;
-    /// before its first tick only the creation event is heard, after it only the kinds its script ranked. The event's flags then ask
+    /// Weighs an event (<c>HumanAI_SendEventHandler</c>): a dead mind or an inactive body hears nothing, and a mind with no
+    /// script or squad hears nothing on this path — its sounds go to the fallback instead, which walks to a noise it
+    /// heard; before its first tick only the creation event is heard, after it only the kinds its script ranked. The event's flags then ask
     /// for it to be within reach (quieter in noise), in view, from a human, alive or dead, of its side or the other's, or in sight.
     /// Heard, it is queued with its direction.
     /// </summary>
     /// <param name="aiEvent">The event.</param>
     public void Receive(in Igi2AiEvent aiEvent)
     {
-        if (IsDead || !Soldier.IsActive || Script is null || Squad is null)
+        if (IsDead || !Soldier.IsActive)
         {
+            return;
+        }
+
+        if (Script is null || Squad is null)
+        {
+            // A mind with no script or no squad hears nothing here; the fallback hears a sound it can walk to
+            // instead, and nothing else. A scripted soldier's sounds stay dropped as today.
+            ReceiveFallback(aiEvent);
             return;
         }
 
