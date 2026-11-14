@@ -1,3 +1,4 @@
+using ProjectIGI.Core.Configuration;
 using ProjectIGI.Core.Diagnostics;
 using ProjectIGI.Engine.Resources;
 using ProjectIGI.Game.World;
@@ -84,9 +85,7 @@ public static class EmissiveLightProposer
         // The first game keeps the unprefixed name it has always written, so every list already
         // corrected by hand stays valid; anything else is prefixed.
         string fixturesPath = Path.Combine(
-            AppContext.BaseDirectory,
-            "Assets",
-            "fixtures",
+            FixturesDirectory(),
             string.Equals(titleId, DefaultTitleId, StringComparison.Ordinal)
                 ? $"mission-{missionId}.json"
                 : $"{titleId}-mission-{missionId}.json");
@@ -128,5 +127,24 @@ public static class EmissiveLightProposer
             logger.Warning("Emissive", $"The lights could not be proposed: {error.Message}");
             return Proposal.None;
         }
+    }
+
+    /// <summary>Where a mission's fixtures file is read from and written to.</summary>
+    /// <remarks>
+    /// Beside the other authored data on desktop, where the file is reviewed and corrected by
+    /// hand. On Android the embedded CoreCLR reports an empty AppContext.BaseDirectory - there
+    /// is no application directory in the .NET sense - so the desktop path degrades to the
+    /// relative Assets/fixtures/..., which resolves against the process working directory (/)
+    /// and the write fails read-only. There the file is a cache only, and it lives under the
+    /// per-user directory with the other caches, where it can be written and read back.
+    /// </remarks>
+    private static string FixturesDirectory()
+    {
+        if (string.IsNullOrEmpty(AppContext.BaseDirectory))
+        {
+            return Path.Combine(SettingsPaths.GetUserDirectory(), "cache", "fixtures");
+        }
+
+        return Path.Combine(AppContext.BaseDirectory, "Assets", "fixtures");
     }
 }
