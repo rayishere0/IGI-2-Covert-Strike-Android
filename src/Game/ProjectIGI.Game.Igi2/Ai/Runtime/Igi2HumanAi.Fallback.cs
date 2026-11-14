@@ -9,7 +9,8 @@ namespace ProjectIGI.Game.Igi2.Ai.Runtime;
 /// hears nothing on the normal path and is never stepped past the tick's early return, so it stands mindless where
 /// it spawned. The fallback is deliberately small — it runs only on that dead path, never for a soldier with a
 /// script and a graph — and it never fights: it walks to a noise it heard, looks at it, and otherwise holds its
-/// post and looks around. A cutscene leaves it exactly as the tick left it before.
+/// post and looks around. A cutscene forgets any noise and holds its decisions, but still steps its body, so it
+/// stands with its stand clip playing instead of holding a frozen pose.
 /// </content>
 public sealed partial class Igi2HumanAi
 {
@@ -119,16 +120,31 @@ public sealed partial class Igi2HumanAi
     /// <summary>
     /// Runs the fallback one tick, for a mind with no script or no graph: the noise it heard is walked to, otherwise
     /// it holds its post and looks around, and its body is stepped as the normal path steps it. A cutscene forgets
-    /// any noise and leaves the body as it stands, as the tick left it before; a soldier riding something, or
-    /// manning a gun, is never moved.
+    /// any noise and holds the fallback's own motion, but still steps the body with a zeroed frame, so the stand
+    /// clip plays instead of holding a frozen pose; a soldier riding something, or manning a gun, is never moved.
     /// </summary>
     /// <param name="soldier">The body.</param>
     /// <param name="detect">Whether the mind runs its spotting half; false while a cutscene plays.</param>
     private void RunFallback(Igi2HumanSoldier soldier, bool detect)
     {
-        if (!detect || soldier.AttachParent is not null || GunnerId != -1)
+        if (soldier.AttachParent is not null || GunnerId != -1)
         {
             ClearFallback();
+            return;
+        }
+
+        if (!detect)
+        {
+            // Cutscene: forget any noise and skip the fallback's own motion, but still step the body with a
+            // zeroed frame, so the stand clip plays instead of holding a frozen pose.
+            ClearFallback();
+            if (soldier.IsActive)
+            {
+                Array.Clear(_channels);
+                soldier.Update(_channels);
+                Array.Clear(_channels);
+            }
+
             return;
         }
 
