@@ -58,6 +58,7 @@ import androidx.documentfile.provider.DocumentFile;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -93,6 +94,15 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     // Total / copied bytes for the game-folder install, driving the determinate progress bar.
     private long copyTotalBytes = 0;
     private long copyDoneBytes = 0;
+    // Copy manifest: written by the game-folder install, one line per file with its
+    // source size, so a later launch can tell a complete install from a partial one.
+    // A partial copy used to pass the signature-only launch check and run the game on
+    // truncated data (a short level5.res crashed Ambush; missing texture packs drew
+    // white) — the manifest is what makes "VERIFIED" mean verified.
+    private static final String COPY_MANIFEST_NAME = ".projectigi_copy_manifest";
+    private static final String COPY_TMP_SUFFIX = ".tmpcopy";
+    // Lines recorded during a copy: relative path + tab + source size.
+    private StringBuilder copyManifest = new StringBuilder();
     // Last time the progress bar was redrawn (uptime ms), to throttle UI updates.
     private long lastProgressUiMs = 0;
     // Gyroscope aim: the sensor and its listener, and the last event timestamp (ns)
@@ -578,7 +588,53 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
             }
         }
 
-        return matches >= 3;
+        // The signature check above only proves the folder looks like a game folder;
+        // it says nothing about whether the copy finished. The manifest, written by
+        // the install, lists every file with its source size: a copy predating
+        // manifests, or one whose files no longer match, is not trusted and must be
+        // re-selected, which re-copies what is short and skips what is whole.
+        return matches >= 3 && copyManifestMatches(dataDir);
+    }
+
+    // Whether every file the install recorded is present at its recorded size.
+    // A missing manifest means the copy predates verification and is not trusted.
+    private boolean copyManifestMatches(File dataDir) {
+        File manifest = new File(dataDir, COPY_MANIFEST_NAME);
+        if (!manifest.isFile()) {
+            Log.i(TAG, "No copy manifest; game folder predates verification and must be re-selected.");
+            return false;
+        }
+        int checked = 0;
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(manifest), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isEmpty()) {
+                    continue;
+                }
+                int tab = line.lastIndexOf('\t');
+                if (tab <= 0) {
+                    return false;
+                }
+                String relative = line.substring(0, tab);
+                long expected;
+                try {
+                    expected = Long.parseLong(line.substring(tab + 1));
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+                File file = new File(dataDir, relative);
+                if (!file.isFile() || file.length() != expected) {
+                    Log.w(TAG, "Copy manifest mismatch: " + relative + " is not " + expected + " bytes.");
+                    return false;
+                }
+                checked++;
+            }
+        } catch (IOException e) {
+            Log.w(TAG, "Copy manifest could not be read.", e);
+            return false;
+        }
+        return checked > 0;
     }
 
     private void openGameFolderPicker() {
@@ -666,7 +722,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
             if (!targetDataDir.exists()) {
                 targetDataDir.mkdirs();
             }
-            copyDocumentTree(rootDoc, targetDataDir);
+            copyManifest = new StringBuilder();
+            copyDocumentTree(rootDoc, targetDataDir, "");
+            writeCopyManifest(targetDataDir);
 
             Log.i(TAG, "Game files successfully copied and verified.");
             runOnUiThread(() -> {
@@ -724,7 +782,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         return String.format(Locale.US, "%.0f MB", bytes / (1024.0 * 1024.0));
     }
 
-    private void copyDocumentTree(DocumentFile sourceDoc, File targetDir) throws IOException {
+    private void copyDocumentTree(DocumentFile sourceDoc, File targetDir, String relativePrefix) throws IOException {
         if (!targetDir.exists()) {
             targetDir.mkdirs();
         }
@@ -733,29 +791,89 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         for (DocumentFile file : files) {
             if (file.isDirectory()) {
                 File subDir = new File(targetDir, file.getName());
-                copyDocumentTree(file, subDir);
+                copyDocumentTree(file, subDir, relativePrefix + file.getName() + "/");
             } else if (file.isFile()) {
+                String relative = relativePrefix + file.getName();
                 File targetFile = new File(targetDir, file.getName());
+                long expected = Math.max(0, file.length());
+                copyManifest.append(relative).append('\t').append(expected).append('\n');
+                // A stale twin differing only in case would shadow this file on a
+                // case-sensitive filesystem (the engine's case-folded lookup takes
+                // whichever the filesystem reports first); remove it before writing.
+                removeCaseTwins(targetDir, file.getName());
                 // Already there with the same size: skip the copy but count it toward
                 // progress, so re-selecting the same folder (or resuming) is nearly free.
-                if (targetFile.exists() && targetFile.length() == file.length()) {
-                    copyDoneBytes += Math.max(0, file.length());
+                if (targetFile.exists() && targetFile.length() == expected) {
+                    copyDoneBytes += expected;
                     reportCopyProgress();
                     continue;
                 }
+                // Write to a temp file and rename on success, so an interrupted copy
+                // never leaves a partial file wearing the real name: writing straight
+                // to the target left truncated data that passed the launch check and
+                // crashed the game on load.
+                File tmpFile = new File(targetDir, file.getName() + COPY_TMP_SUFFIX);
+                tmpFile.delete();
                 try (InputStream in = getContentResolver().openInputStream(file.getUri());
-                     OutputStream out = new FileOutputStream(targetFile)) {
-                    if (in != null) {
-                        byte[] buffer = new byte[262144];
-                        int read;
-                        while ((read = in.read(buffer)) != -1) {
-                            out.write(buffer, 0, read);
-                            copyDoneBytes += read;
-                            reportCopyProgress();
-                        }
+                     OutputStream out = new FileOutputStream(tmpFile)) {
+                    if (in == null) {
+                        throw new IOException("Could not open " + relative);
                     }
+                    byte[] buffer = new byte[262144];
+                    int read;
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                        copyDoneBytes += read;
+                        reportCopyProgress();
+                    }
+                } catch (IOException e) {
+                    tmpFile.delete();
+                    throw e;
+                }
+                // A stream that ends early must fail loudly, not install a short file.
+                long written = tmpFile.length();
+                if (written != expected) {
+                    tmpFile.delete();
+                    throw new IOException("Short copy of " + relative + ": got " + written + " of " + expected + " bytes");
+                }
+                if (!tmpFile.renameTo(targetFile)) {
+                    tmpFile.delete();
+                    throw new IOException("Could not install " + relative);
                 }
             }
+        }
+    }
+
+    // Removes existing children of a directory whose names match only by case, so a
+    // re-copy over a differently-cased earlier copy cannot leave two files the
+    // engine's case-folded lookup would confuse.
+    private void removeCaseTwins(File dir, String name) {
+        File[] children = dir.listFiles();
+        if (children == null) {
+            return;
+        }
+        for (File child : children) {
+            if (child.isFile() && !child.getName().equals(name)
+                    && child.getName().equalsIgnoreCase(name)) {
+                child.delete();
+            }
+        }
+    }
+
+    // Writes the copy manifest atomically (temp + rename), so a manifest only ever
+    // describes a copy that finished.
+    private void writeCopyManifest(File targetDataDir) throws IOException {
+        File tmp = new File(targetDataDir, COPY_MANIFEST_NAME + COPY_TMP_SUFFIX);
+        File manifest = new File(targetDataDir, COPY_MANIFEST_NAME);
+        try (OutputStream out = new FileOutputStream(tmp)) {
+            out.write(copyManifest.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            tmp.delete();
+            throw e;
+        }
+        if (!tmp.renameTo(manifest)) {
+            tmp.delete();
+            throw new IOException("Could not write copy manifest");
         }
     }
 
