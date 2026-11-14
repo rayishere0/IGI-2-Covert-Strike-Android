@@ -10,7 +10,8 @@ namespace ProjectIGI.Game.Igi2.Player;
 /// Mission 1's <c>objects.qvm</c> declares <c>HumanPlayer</c> with ten parameters: the first game's <c>Position</c>,
 /// <c>Gamma</c>, <c>Model</c> and <c>Team</c>, then the script that fills the player's inventory, the first-person model,
 /// the visibility triple and whether weapons carry over from the previous mission. It stays a
-/// <see cref="HumanPlayerTask"/>, which is what finds the level's spawn, and binds all ten.
+/// <see cref="HumanPlayerTask"/>, which is what finds the level's spawn, and binds all ten. Every other level declares
+/// an eleventh, <c>DisableSpottedIncrease</c>, bound below.
 /// </para>
 /// <para>
 /// The <c>Weapon</c> script is evaluated once the level is loaded (<see cref="Weapons.Igi2HumanWeapons"/>).
@@ -57,6 +58,10 @@ public sealed partial class Igi2HumanPlayerTask : HumanPlayerTask
     /// <summary>Gets or sets a value indicating whether the player keeps the previous mission's weapons.</summary>
     [ScriptParam(ScriptParamType.Bool8, "Carry over weapons from previous mission")]
     public bool CarryOverWeapons { get; set; }
+
+    /// <summary>Gets or sets the expression that, while it holds, keeps a sighting from counting toward the times spotted.</summary>
+    [ScriptParam(ScriptParamType.VarString, "DisableSpottedIncrease")]
+    public string DisableSpottedIncreaseScript { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the player the session made for this task, or <see langword="null"/>.</summary>
     public Igi2HumanPlayer? Human { get; set; }
