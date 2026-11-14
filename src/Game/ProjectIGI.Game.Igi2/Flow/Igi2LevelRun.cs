@@ -145,6 +145,9 @@ public sealed class Igi2LevelRun : LevelRun, IConditionalContainerRules
     /// <param name="view">The camera.</param>
     public void SetCutsceneView(Igi2CutsceneView view) => CutsceneView = view ?? throw new ArgumentNullException(nameof(view));
 
+    /// <summary>Gets or sets which of the level's objects its containers have in the world, set again as each tick ends.</summary>
+    public World.Igi2WorldPresence? WorldPresence { get; set; }
+
     /// <summary>Runs one tick from the root.</summary>
     public void Tick()
     {
@@ -152,6 +155,7 @@ public sealed class Igi2LevelRun : LevelRun, IConditionalContainerRules
         IsCutsceneRunning = false;
         CutsceneView = null;
         Run(Root);
+        WorldPresence?.Sync();
     }
 
     /// <summary>

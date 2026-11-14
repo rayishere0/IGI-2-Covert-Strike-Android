@@ -132,6 +132,7 @@ internal sealed class WorldFrameState
             // shares the verdict, so what the eye cannot see casts nothing into what it can.
             if (GenericPickups?.IsCollected(authored.Owner) == true
                 || !ConditionalContainerGate.IsTaskActive(authored.Owner)
+                || _transforms.Presence?.IsInWorld(authored) == false
                 || Visibility?.IsVisible(authored) == false)
             {
                 entry.Skip = true;

@@ -291,5 +291,10 @@ internal static class Igi2InteractionSystems
         player.Cameras = [.. b.Root.Descendants().OfType<Igi2SecurityCameraTask>()];
         List<IIgi2PartMover> partMovers = [.. b.Root.Descendants().OfType<Igi2CabinetTask>(), .. b.Turrets, .. b.Cars, .. player.Cameras];
         player.Motions = b.Movers.Count > 0 || partMovers.Count > 0 ? new Igi2MoverMotions(b.Movers, partMovers) : null;
+
+        // What the level's conditional containers keep out of the world is neither drawn nor met.
+        Igi2WorldPresence? presence = Igi2WorldPresence.Build(b.Root, player.CollisionWorld);
+        player.Presence = presence;
+        b.Level.WorldPresence = presence;
     }
 }
