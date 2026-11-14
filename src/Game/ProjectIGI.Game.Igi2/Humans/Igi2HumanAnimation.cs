@@ -17,7 +17,8 @@ namespace ProjectIGI.Game.Igi2.Humans;
 /// A state picks its clip through its row of the state-animation table and the held weapon's clips for the body's
 /// rig (<c>HumanAnim_SetAnimationAndTimeFromState</c>, <c>0x58FAA0</c>). The two weapon-raise rows that lower the
 /// weapon start from the clip's end less the time asked for and step backwards a frame a tick. A body holding no
-/// weapon plays its rig's <c>stand</c> clip whatever the state.
+/// weapon plays its rig's <c>stand</c> clip whatever the state, and a weapon's table with no row for a state plays
+/// it too, rather than leaving the controller clip-less.
 /// </para>
 /// <para>
 /// The upper body has its own pair of controllers (<c>HumanAnim_Init</c>, <c>0x58F650</c>), set the same way
@@ -314,7 +315,7 @@ public sealed class Igi2HumanAnimation : IIgi2HumanAnimation
         int animation = (uint)state < (uint)_stateAnimations.Count ? _stateAnimations[state] : 0;
         if (_weaponClips() is { } clips)
         {
-            Igi2AnimationClip? clip = (uint)animation < (uint)clips.Count ? clips[animation] : null;
+            Igi2AnimationClip? clip = ClipForState(animation, clips);
             if (animation is Igi2WeaponTypeAnims.LowerWeapon or Igi2WeaponTypeAnims.LowerWeaponLyingFlat)
             {
                 SetUpperBody(clip, (clip?.TotalTime ?? 0) - time, blendSeconds);
@@ -357,13 +358,27 @@ public sealed class Igi2HumanAnimation : IIgi2HumanAnimation
         return _weaponClips() is { } clips && (uint)animation < (uint)clips.Count ? clips[animation]?.TotalTime ?? 0 : 0;
     }
 
+    /// <summary>
+    /// The clip a state plays through a weapon's table, or the rig's stand clip when the table has no row for it: a
+    /// missing row left the controller clip-less, and a clip-less controller leaves the body in its bind pose. A
+    /// body holding no weapon already plays stand whatever the state; a missing row now reads the same way.
+    /// </summary>
+    /// <param name="animation">The state's row in the weapon's table.</param>
+    /// <param name="clips">The held weapon's clips for the body's rig.</param>
+    /// <returns>The row's clip, or the stand clip.</returns>
+    private Igi2AnimationClip? ClipForState(int animation, IReadOnlyList<Igi2AnimationClip?> clips)
+    {
+        Igi2AnimationClip? clip = (uint)animation < (uint)clips.Count ? clips[animation] : null;
+        return clip ?? (_rig is null ? null : _library?.Find(_rig, UnarmedClip));
+    }
+
     /// <inheritdoc/>
     public void PlayState(int state, int time, float blendSeconds)
     {
         int animation = (uint)state < (uint)_stateAnimations.Count ? _stateAnimations[state] : 0;
         if (_weaponClips() is { } clips)
         {
-            Igi2AnimationClip? clip = (uint)animation < (uint)clips.Count ? clips[animation] : null;
+            Igi2AnimationClip? clip = ClipForState(animation, clips);
             if (animation is Igi2WeaponTypeAnims.LowerWeapon or Igi2WeaponTypeAnims.LowerWeaponLyingFlat)
             {
                 SetAnimation(clip, (clip?.TotalTime ?? 0) - time, blendSeconds);
@@ -388,7 +403,7 @@ public sealed class Igi2HumanAnimation : IIgi2HumanAnimation
     {
         int animation = (uint)state < (uint)_stateAnimations.Count ? _stateAnimations[state] : 0;
         Igi2AnimationClip? clip = _weaponClips() is { } clips
-            ? ((uint)animation < (uint)clips.Count ? clips[animation] : null)
+            ? ClipForState(animation, clips)
             : (_rig is null ? null : _library?.Find(_rig, UnarmedClip));
         SetAnimation(clip, clip?.TotalTime ?? 0, blendSeconds);
         LastState = state;
