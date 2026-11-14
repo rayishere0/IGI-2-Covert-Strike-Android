@@ -4,6 +4,7 @@ using ProjectIGI.Game.Igi2.Flow;
 using ProjectIGI.Game.Igi2.Humans;
 using ProjectIGI.Game.Igi2.Player;
 using ProjectIGI.Game.Igi2.World;
+using ProjectIGI.Scripting.Expressions;
 
 namespace ProjectIGI.Game.Igi2.Systems;
 
@@ -39,6 +40,16 @@ internal static class Igi2FlowSystems
         {
             playerTask.Human = player.Human;
             player.Human.Task = playerTask;
+
+            // The level's DisableSpottedIncrease expression, evaluated each time a squad first
+            // spots the player: while it holds, the sighting is not counted (see NoteDetected).
+            // Compiled lazily so the level's tasks are all in place before any name in it resolves.
+            LevelExpression? spotted = null;
+            player.Human.IsSpottedIncreaseDisabled = () =>
+            {
+                spotted ??= Igi2LevelExpressions.Create(playerTask.DisableSpottedIncreaseScript, playerTask.Name, b.Natives);
+                return LevelExpression.Flag(level.Evaluate(spotted));
+            };
         }
 
         player.Input = b.PlayerTask.Children.OfType<Igi2HumanPlayerInputTask>().FirstOrDefault();
