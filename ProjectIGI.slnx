@@ -53,4 +53,7 @@
     <Project Path="src/UI/ProjectIGI.UI.Rhi/ProjectIGI.UI.Rhi.csproj" />
     <Project Path="src/UI/ProjectIGI.UI/ProjectIGI.UI.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ProjectIGI.Platform.Web.Tests/ProjectIGI.Platform.Web.Tests.csproj" />
+  </Folder>
 </Solution>
